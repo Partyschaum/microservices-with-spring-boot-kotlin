@@ -22,3 +22,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
 }
+
+tasks.getByName<Jar>("jar") {
+    enabled = false
+}

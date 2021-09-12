@@ -25,3 +25,7 @@ dependencies {
 
     testImplementation("io.projectreactor:reactor-test")
 }
+
+tasks.getByName<Jar>("jar") {
+    enabled = false
+}
