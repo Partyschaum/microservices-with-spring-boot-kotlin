@@ -5,7 +5,7 @@ import com.thatveryfewthings.api.exceptions.InvalidInputException
 import com.thatveryfewthings.api.exceptions.NotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.*
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
@@ -26,22 +26,22 @@ internal class GlobalControllerExceptionHandler {
         return createHttpErrorInfo(BAD_REQUEST, request, ex)
     }
 
-    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseStatus(NOT_FOUND)
     @ExceptionHandler(
         NotFoundException::class
     )
     @ResponseBody
     fun handleNotFoundExceptions(request: ServerHttpRequest, ex: NotFoundException): HttpErrorInfo {
-        return createHttpErrorInfo(HttpStatus.NOT_FOUND, request, ex)
+        return createHttpErrorInfo(NOT_FOUND, request, ex)
     }
 
-    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    @ResponseStatus(UNPROCESSABLE_ENTITY)
     @ExceptionHandler(
         InvalidInputException::class
     )
     @ResponseBody
     fun handleInvalidInputException(request: ServerHttpRequest, ex: InvalidInputException): HttpErrorInfo {
-        return createHttpErrorInfo(HttpStatus.UNPROCESSABLE_ENTITY, request, ex)
+        return createHttpErrorInfo(UNPROCESSABLE_ENTITY, request, ex)
     }
 
     private fun createHttpErrorInfo(httpStatus: HttpStatus, request: ServerHttpRequest, ex: Exception): HttpErrorInfo {
