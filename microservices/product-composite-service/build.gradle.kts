@@ -9,6 +9,7 @@ group = "com.thatveryfewthings.microservices.composite.product"
 version = "1.0.0-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
+val springdocVersion = "1.5.10"
 val springMockkVersion = "3.0.1"
 
 dependencies {
@@ -23,6 +24,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+
+    implementation("org.springdoc:springdoc-openapi-webflux-ui:$springdocVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(module = "mockito-core")
