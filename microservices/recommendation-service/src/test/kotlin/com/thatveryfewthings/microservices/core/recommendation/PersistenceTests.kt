@@ -1,5 +1,6 @@
 package com.thatveryfewthings.microservices.core.recommendation
 
+import com.thatveryfewthings.MongoDbTest
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationEntity
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,10 +14,6 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
 @DataMongoTest(excludeAutoConfiguration = [EmbeddedMongoAutoConfiguration::class])
@@ -24,7 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 class PersistenceTests(
     @Autowired
     private val repository: RecommendationRepository
-) {
+) : MongoDbTest() {
 
     @BeforeEach
     fun clearTable() {
@@ -189,17 +186,5 @@ class PersistenceTests(
         assertEquals(expectedEntity.author, actualEntity.author)
         assertEquals(expectedEntity.rating, actualEntity.rating)
         assertEquals(expectedEntity.content, actualEntity.content)
-    }
-
-    companion object {
-        @Container
-        @JvmStatic
-        val database = MongoDBContainer("mongo:3.6.9")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun setProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.data.mongodb.uri") { database.replicaSetUrl }
-        }
     }
 }

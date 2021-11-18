@@ -2,6 +2,7 @@ package com.thatveryfewthings.microservices.core.product
 
 import com.mongodb.assertions.Assertions.assertFalse
 import com.mongodb.assertions.Assertions.assertTrue
+import com.thatveryfewthings.MongoDbTest
 import com.thatveryfewthings.microservices.core.product.persistence.ProductEntity
 import com.thatveryfewthings.microservices.core.product.persistence.ProductRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,10 +20,6 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort.Direction.ASC
 import org.springframework.data.repository.findByIdOrNull
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
 @DataMongoTest(excludeAutoConfiguration = [EmbeddedMongoAutoConfiguration::class])
@@ -30,7 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 class PersistenceTests(
     @Autowired
     private val repository: ProductRepository
-) {
+) : MongoDbTest() {
 
     @BeforeEach
     fun clearTable() {
@@ -186,17 +183,5 @@ class PersistenceTests(
         assertPage(productPage)
 
         return productPage.nextPageable()
-    }
-
-    companion object {
-        @Container
-        @JvmStatic
-        val database = MongoDBContainer("mongo:3.6.9")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun setProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.data.mongodb.uri") { database.replicaSetUrl }
-        }
     }
 }
