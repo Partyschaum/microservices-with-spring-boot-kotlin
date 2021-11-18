@@ -3,7 +3,16 @@ server:
   error:
     include-message: always
 
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: product-db
+      auto-index-creation: true
+
 logging:
   level:
     root: info
     com.thatveryfewthings.microservices: debug
+    org.springframework.data.mongodb.core.MongoTemplate: debug
