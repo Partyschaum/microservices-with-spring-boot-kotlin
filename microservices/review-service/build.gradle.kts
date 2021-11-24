@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm")
     kotlin("kapt")
     kotlin("plugin.spring")
+    kotlin("plugin.jpa")
 }
 
 group = "com.thatveryfewthings.microservices.core.review"
