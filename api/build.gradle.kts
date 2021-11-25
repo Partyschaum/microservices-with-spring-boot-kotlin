@@ -12,6 +12,7 @@ val springBootVersion = "2.5.4"
 val springdocVersion = "1.5.10"
 
 dependencies {
+    implementation(project(":util"))
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")

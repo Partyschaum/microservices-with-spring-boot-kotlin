@@ -1,5 +1,6 @@
 package com.thatveryfewthings.microservices.core.review.persistence
 
+import com.thatveryfewthings.util.mapstruct.Default
 import javax.persistence.*
 
 @Entity
@@ -21,6 +22,8 @@ class ReviewEntity(
     var subject: String,
     var content: String,
 ) {
+
+    @Default
     constructor(
         productId: Int,
         reviewId: Int,

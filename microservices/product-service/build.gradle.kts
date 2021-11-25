@@ -25,9 +25,6 @@ dependencies {
 
     // MapStruct configuration
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
-    compileOnly("org.mapstruct:mapstruct-processor:$mapstructVersion")
-    annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
-    testAnnotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
     kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")

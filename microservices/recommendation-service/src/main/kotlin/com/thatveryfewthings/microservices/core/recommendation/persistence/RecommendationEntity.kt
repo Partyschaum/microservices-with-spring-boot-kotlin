@@ -1,5 +1,6 @@
 package com.thatveryfewthings.microservices.core.recommendation.persistence
 
+import com.thatveryfewthings.util.mapstruct.Default
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.index.CompoundIndex
@@ -20,6 +21,8 @@ class RecommendationEntity(
     var rating: Int,
     var content: String,
 ) {
+
+    @Default
     constructor(
         productId: Int,
         recommendationId: Int,

@@ -1,10 +1,10 @@
 package com.thatveryfewthings.api.core.review
 
 data class Review(
-    val productId: Int = 0,
-    val reviewId: Int = 0,
-    val author: String? = null,
-    val subject: String? = null,
-    val content: String? = null,
-    val serviceAddress: String? = null,
+    val productId: Int,
+    val reviewId: Int,
+    val author: String?,
+    val subject: String?,
+    val content: String?,
+    val serviceAddress: String?,
 )

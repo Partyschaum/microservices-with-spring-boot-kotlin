@@ -1,5 +1,6 @@
 package com.thatveryfewthings.microservices.core.product.persistence
 
+import com.thatveryfewthings.util.mapstruct.Default
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.index.Indexed
@@ -19,6 +20,8 @@ class ProductEntity(
     var name: String,
     var weight: Int,
 ) {
+
+    @Default
     constructor(
         productId: Int,
         name: String,
