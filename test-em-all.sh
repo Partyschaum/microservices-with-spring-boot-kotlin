@@ -88,6 +88,10 @@ if [[ $@ == *"start"* ]]; then
   docker-compose up -d
 fi
 
+# TODO: Replace this with a custom healthcheck in the docker-compose (https://blog.sixeyed.com/docker-healthchecks-why-not-to-use-curl-or-iwr/)
+echo "Waiting for 5 seconds..."
+sleep 5s
+
 waitForService curl http://$HOST:$PORT/product-composite/$PROD_ID_REVS_RECS
 
 # Verify that a normal request works, expect three recommendations and three reviews
