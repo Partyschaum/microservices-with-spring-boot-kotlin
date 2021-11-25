@@ -9,8 +9,8 @@ import com.thatveryfewthings.api.core.review.Review
 import com.thatveryfewthings.api.core.review.ReviewService
 import com.thatveryfewthings.api.exceptions.InvalidInputException
 import com.thatveryfewthings.api.exceptions.NotFoundException
+import com.thatveryfewthings.api.http.HttpErrorInfo
 import com.thatveryfewthings.microservices.composite.product.properties.ConfigurationProperties
-import com.thatveryfewthings.util.http.HttpErrorInfo
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod.GET

@@ -4,7 +4,7 @@ import com.thatveryfewthings.api.core.product.Product
 import com.thatveryfewthings.api.core.product.ProductService
 import com.thatveryfewthings.api.exceptions.InvalidInputException
 import com.thatveryfewthings.api.exceptions.NotFoundException
-import com.thatveryfewthings.util.http.ServiceUtil
+import com.thatveryfewthings.api.http.ServiceUtil
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.RestController
 

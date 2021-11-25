@@ -1,4 +1,4 @@
-package com.thatveryfewthings.util.http
+package com.thatveryfewthings.api.http
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value

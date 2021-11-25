@@ -3,7 +3,7 @@ package com.thatveryfewthings.microservices.core.recommendation.services
 import com.thatveryfewthings.api.core.recommendation.Recommendation
 import com.thatveryfewthings.api.core.recommendation.RecommendationService
 import com.thatveryfewthings.api.exceptions.InvalidInputException
-import com.thatveryfewthings.util.http.ServiceUtil
+import com.thatveryfewthings.api.http.ServiceUtil
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.RestController
 

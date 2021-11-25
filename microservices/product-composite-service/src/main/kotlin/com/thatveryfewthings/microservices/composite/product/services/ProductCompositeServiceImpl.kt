@@ -4,7 +4,7 @@ import com.thatveryfewthings.api.composite.product.*
 import com.thatveryfewthings.api.core.product.Product
 import com.thatveryfewthings.api.core.recommendation.Recommendation
 import com.thatveryfewthings.api.core.review.Review
-import com.thatveryfewthings.util.http.ServiceUtil
+import com.thatveryfewthings.api.http.ServiceUtil
 import org.springframework.web.bind.annotation.RestController
 
 @RestController

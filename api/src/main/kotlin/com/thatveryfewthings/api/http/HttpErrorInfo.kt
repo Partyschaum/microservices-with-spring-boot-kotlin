@@ -1,4 +1,4 @@
-package com.thatveryfewthings.util.http
+package com.thatveryfewthings.api.http
 
 import org.springframework.http.HttpStatus
 import java.time.ZonedDateTime

@@ -1,4 +1,4 @@
-package com.thatveryfewthings.util.http
+package com.thatveryfewthings.api.http
 
 import com.thatveryfewthings.api.exceptions.BadRequestException
 import com.thatveryfewthings.api.exceptions.InvalidInputException

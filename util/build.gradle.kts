@@ -13,8 +13,6 @@ val springBootVersion = "2.5.4"
 val testcontainersVersion = "1.16.2"
 
 dependencies {
-    implementation(project(":api"))
-
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")

@@ -3,7 +3,7 @@ package com.thatveryfewthings.microservices.core.review.services
 import com.thatveryfewthings.api.core.review.Review
 import com.thatveryfewthings.api.core.review.ReviewService
 import com.thatveryfewthings.api.exceptions.InvalidInputException
-import com.thatveryfewthings.util.http.ServiceUtil
+import com.thatveryfewthings.api.http.ServiceUtil
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.RestController
 
