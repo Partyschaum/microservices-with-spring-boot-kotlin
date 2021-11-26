@@ -1,78 +1,183 @@
 package com.thatveryfewthings.microservices.core.product
 
+import com.thatveryfewthings.api.core.product.Product
+import com.thatveryfewthings.microservices.core.product.persistence.ProductRepository
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
-import org.springframework.http.HttpStatus.BAD_REQUEST
-import org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
+import reactor.kotlin.core.publisher.toMono
 
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = RANDOM_PORT,
+    properties = ["spring.data.mongodb.port: 0"],
+)
 class ProductServiceApplicationTests(
     @Autowired
-    private val client: WebTestClient
+    private val client: WebTestClient,
+    @Autowired
+    private val repository: ProductRepository,
 ) {
+
+    @BeforeEach
+    fun clearDb() {
+        repository.deleteAll()
+    }
 
     @Test
     fun getProductById() {
-
+        // Given
         val productId = 1
+        postAndVerifyProduct(productId, HttpStatus.OK)
+        assertNotNull(repository.findByProductId(productId))
 
-        client.get()
-            .uri("/product/$productId")
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isOk
-            .expectHeader().contentType(APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.productId").isEqualTo(productId)
+        // When
+        getAndVerifyProduct(productId, HttpStatus.OK) {
+
+            // Then
+            jsonPath("$.productId").isEqualTo(productId)
+        }
+    }
+
+    @Test
+    fun duplicateError() {
+        // Given
+        val productId = 1
+        postAndVerifyProduct(productId, HttpStatus.OK)
+        assertNotNull(repository.findByProductId(productId))
+
+        // When
+        postAndVerifyProduct(productId, HttpStatus.UNPROCESSABLE_ENTITY) {
+
+            // Then
+            jsonPath("$.path").isEqualTo("/product")
+            jsonPath("$.message").isEqualTo("Duplicate key, Product id: $productId")
+        }
+    }
+
+    @Test
+    fun deleteProduct() {
+        // Given
+        val productId = 1
+        postAndVerifyProduct(productId, HttpStatus.OK)
+        assertNotNull(repository.findByProductId(productId))
+
+        // When
+        deleteAndVerifyProduct(productId, HttpStatus.OK)
+
+        // Then
+        assertNull(repository.findByProductId(productId))
+        deleteAndVerifyProduct(productId, HttpStatus.OK)
     }
 
     @Test
     fun getProductInvalidParameterString() {
+        // Given
+        val invalidProductId = "no-integer"
 
-        client.get()
-            .uri("/product/no-integer")
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isEqualTo(BAD_REQUEST)
-            .expectHeader().contentType(APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.path").isEqualTo("/product/no-integer")
-            .jsonPath("$.message").isEqualTo("Type mismatch.")
+        // When
+        getAndVerifyProduct(invalidProductId, HttpStatus.BAD_REQUEST) {
+
+            // Then
+            jsonPath("$.path").isEqualTo(("/product/no-integer"))
+            jsonPath("$.message").isEqualTo("Type mismatch.")
+        }
     }
 
     @Test
     fun getProductNotFound() {
+        // Given
+        val nonExistentProductId = 13
 
-        val productIdNotFound = 13
+        // When
+        getAndVerifyProduct(nonExistentProductId, HttpStatus.NOT_FOUND) {
 
-        client.get()
-            .uri("/product/$productIdNotFound")
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isNotFound
-            .expectHeader().contentType(APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.path").isEqualTo("/product/$productIdNotFound")
-            .jsonPath("$.message").isEqualTo("No product found for productId: $productIdNotFound")
+            // Then
+            jsonPath("$.path").isEqualTo("/product/$nonExistentProductId")
+            jsonPath("$.message").isEqualTo("No product found for productId: $nonExistentProductId")
+        }
     }
 
     @Test
     fun getProductInvalidParameterNegativeValue() {
+        // Given
+        val invalidProductId = -1
 
-        val productIdInvalid = -1
+        // When
+        getAndVerifyProduct(invalidProductId, HttpStatus.UNPROCESSABLE_ENTITY) {
 
-        client.get()
-            .uri("/product/$productIdInvalid")
+            // Then
+            jsonPath("$.path").isEqualTo("/product/$invalidProductId")
+            jsonPath("$.message").isEqualTo("Invalid productId: $invalidProductId")
+        }
+    }
+
+    private fun getAndVerifyProduct(
+        productId: Int,
+        expectedStatus: HttpStatus,
+        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit,
+    ) {
+        getAndVerifyProduct("$productId", expectedStatus, bodyAssertions)
+    }
+
+    private fun getAndVerifyProduct(
+        path: String,
+        expectedStatus: HttpStatus,
+        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit,
+    ) {
+        val bodyContentSpec = client.get()
+            .uri("/product/$path")
             .accept(APPLICATION_JSON)
             .exchange()
-            .expectStatus().isEqualTo(UNPROCESSABLE_ENTITY)
+            .expectStatus().isEqualTo(expectedStatus)
             .expectHeader().contentType(APPLICATION_JSON)
             .expectBody()
-            .jsonPath("$.path").isEqualTo("/product/$productIdInvalid")
-            .jsonPath("$.message").isEqualTo("Invalid productId: $productIdInvalid")
+
+        bodyAssertions(bodyContentSpec)
+    }
+
+    private fun postAndVerifyProduct(
+        productId: Int,
+        expectedStatus: HttpStatus,
+        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {},
+    ) {
+        val product = Product(
+            productId = productId,
+            name = "Name $productId",
+            weight = productId,
+            serviceAddress = "some service address",
+        )
+
+        val bodyContentSpec = client.post()
+            .uri("/product")
+            .body(product.toMono(), Product::class.java)
+            .accept(APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isEqualTo(expectedStatus)
+            .expectHeader().contentType(APPLICATION_JSON)
+            .expectBody()
+
+        bodyAssertions(bodyContentSpec)
+    }
+
+    private fun deleteAndVerifyProduct(
+        productId: Int,
+        expectedStatus: HttpStatus,
+        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {}
+    ) {
+        val bodyContentSpec = client.delete()
+            .uri("/product/$productId")
+            .accept(APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isEqualTo(expectedStatus)
+            .expectBody()
+
+        bodyAssertions(bodyContentSpec)
     }
 }
