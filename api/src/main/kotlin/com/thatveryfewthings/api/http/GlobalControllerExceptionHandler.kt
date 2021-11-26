@@ -44,6 +44,15 @@ internal class GlobalControllerExceptionHandler {
         return createHttpErrorInfo(UNPROCESSABLE_ENTITY, request, ex)
     }
 
+    @ResponseStatus(INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(
+        IllegalStateException::class
+    )
+    @ResponseBody
+    fun handleIllegalStateException(request: ServerHttpRequest, ex: IllegalStateException): HttpErrorInfo {
+        return createHttpErrorInfo(INTERNAL_SERVER_ERROR, request, ex)
+    }
+
     private fun createHttpErrorInfo(httpStatus: HttpStatus, request: ServerHttpRequest, ex: Exception): HttpErrorInfo {
         val path = request.path.pathWithinApplication().value()
         val message = ex.message

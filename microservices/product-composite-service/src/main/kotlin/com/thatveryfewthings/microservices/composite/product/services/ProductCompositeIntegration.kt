@@ -30,71 +30,166 @@ class ProductCompositeIntegration(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    private val productServiceUrl = "${configuration.productService.url}/product/"
-    private val recommendationServiceUrl = "${configuration.recommendationService.url}/recommendation?productId="
-    private val reviewServiceUrl = "${configuration.reviewService.url}/review?productId="
+    private val productServiceUrl = "${configuration.productService.url}/product"
+    private val recommendationServiceUrl = "${configuration.recommendationService.url}/recommendation"
+    private val reviewServiceUrl = "${configuration.reviewService.url}/review"
 
     override fun getProduct(productId: Int): Product {
         return try {
-            val url = productServiceUrl + productId
-
-            log.debug("Will call getProduct API on URL: $url")
+            val url = "$productServiceUrl/$productId"
+            log.debug("Will call the getProduct API on URL: $url")
 
             restTemplate.getForObject(url, Product::class.java)?.also {
                 log.debug("Found a product with id: $productId")
             } ?: throw NotFoundException("No product found for productId: $productId")
 
         } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
 
-            when (ex.statusCode) {
-                NOT_FOUND -> throw NotFoundException(ex.errorMessage)
-                UNPROCESSABLE_ENTITY -> throw InvalidInputException(ex.errorMessage)
+    override fun createProduct(product: Product): Product {
+        return try {
+            val url = productServiceUrl
+            log.debug("Will call the createProduct API on URL: $url")
 
-                else -> {
-                    log.warn("Got an unexpected HTTP error: ${ex.statusCode}, will rethrow it")
-                    log.warn("Error body: ${ex.responseBodyAsString}")
-                    throw ex
+            checkNotNull(
+                restTemplate.postForObject(url, product, Product::class.java)?.also {
+                    log.debug("Created a product with id: ${it.productId}")
                 }
-            }
+            ) { "Problem when trying to create a product with id ${product.productId} at $url" }
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
+
+    override fun deleteProduct(productId: Int) {
+        try {
+            val url = "$productServiceUrl/$productId"
+            log.debug("Will call the deleteProduct API on URL: $url")
+
+            restTemplate.delete(url)
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
         }
     }
 
     override fun getRecommendations(productId: Int): List<Recommendation> {
         return try {
             val url = recommendationServiceUrl + productId
+            log.debug("Will call the getRecommendations API on URL: $url")
 
-            log.debug("Will call getRecommendations API on URL: $url")
-            restTemplate.exchange(url, GET, null, object : ParameterizedTypeReference<List<Recommendation>>() {}).body
-                ?: emptyList<Recommendation>().also {
-                    log.warn("No recommendations found for productId: $productId")
-                }
+            val responseType = object : ParameterizedTypeReference<List<Recommendation>>() {}
+            val recommendations = restTemplate.exchange(url, GET, null, responseType).body
+
+            recommendations?.also {
+                log.debug("Found ${it.size} recommendations for the product with id: $productId")
+            } ?: emptyList<Recommendation>().also {
+                log.warn("No recommendations found for productId: $productId")
+            }
+
         } catch (ex: Exception) {
             log.warn("Got an exception while requesting recommendations, return zero recommendations: ${ex.message}")
             emptyList()
         }
     }
 
+    override fun createRecommendation(recommendation: Recommendation): Recommendation {
+        return try {
+            val url = recommendationServiceUrl
+            log.debug("Will call the createRecommendation API on URL: $url")
+
+            checkNotNull(
+                restTemplate.postForObject(url, recommendation, Recommendation::class.java)?.also {
+                    log.debug("Created a recommendation with id: ${it.recommendationId}")
+                }
+            ) { "Problem when trying to create a recommendation for product with id ${recommendation.productId} at $url" }
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
+
+    override fun deleteRecommendations(productId: Int) {
+        try {
+            val url = "$recommendationServiceUrl?productId=$productId"
+            log.debug("Will call the deleteRecommendations API on URL: $url")
+
+            restTemplate.delete(url)
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
+
     override fun getReviews(productId: Int): List<Review> {
         return try {
             val url = reviewServiceUrl + productId
-
             log.debug("Will call getReviews API on URL: $url")
-            restTemplate.exchange(url, GET, null, object : ParameterizedTypeReference<List<Review>>() {}).body
-                ?: emptyList<Review>().also {
-                    log.warn("No reviews found for productId: $productId")
-                }
+
+            val responseType = object : ParameterizedTypeReference<List<Review>>() {}
+            val reviews = restTemplate.exchange(url, GET, null, responseType).body
+
+            reviews?.also {
+                log.debug("Found ${it.size} reviews for the product with id: $productId")
+            } ?: emptyList<Review>().also {
+                log.warn("No reviews found for productId: $productId")
+            }
+
         } catch (ex: Exception) {
             log.warn("Got an exception while requesting reviews, return zero reviews: ${ex.message}")
             emptyList()
         }
     }
 
+    override fun createReview(review: Review): Review {
+        return try {
+            val url = reviewServiceUrl
+            log.debug("Will call the createReview API on URL: $url")
+
+            checkNotNull(
+                restTemplate.postForObject(url, review, Review::class.java)?.also {
+                    log.debug("Created a review with id: ${it.reviewId}")
+                }
+            ) { "Problem when trying to create a review for product with id ${review.productId} at $url" }
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
+
+    override fun deleteReviews(productId: Int) {
+        try {
+            val url = "$reviewServiceUrl?productId=$productId"
+            log.debug("Will call the deleteReviews API on URL: $url")
+
+            restTemplate.delete(url)
+
+        } catch (ex: HttpClientErrorException) {
+            throw handleHttpClientException(ex)
+        }
+    }
+
     private val HttpClientErrorException.errorMessage: String
         get() = try {
-            mapper.readValue(this.responseBodyAsString, HttpErrorInfo::class.java).message
-                ?: this.responseBodyAsString
+            mapper.readValue(responseBodyAsString, HttpErrorInfo::class.java).message
+                ?: responseBodyAsString
         } catch (ex: IOException) {
-            this.message
-                ?: this.responseBodyAsString
+            message ?: responseBodyAsString
         }
+
+    private fun handleHttpClientException(exception: HttpClientErrorException): RuntimeException {
+        return when (exception.statusCode) {
+            NOT_FOUND -> NotFoundException(exception.errorMessage)
+            UNPROCESSABLE_ENTITY -> InvalidInputException(exception.errorMessage)
+
+            else -> {
+                log.warn("Got an unexpected HTTP error: ${exception.statusCode}, will rethrow it")
+                log.warn("Error body: ${exception.responseBodyAsString}")
+                throw exception
+            }
+        }
+    }
 }
