@@ -78,7 +78,7 @@ class ProductCompositeIntegration(
 
     override fun getRecommendations(productId: Int): List<Recommendation> {
         return try {
-            val url = recommendationServiceUrl + productId
+            val url = "$recommendationServiceUrl?productId=$productId"
             log.debug("Will call the getRecommendations API on URL: $url")
 
             val responseType = object : ParameterizedTypeReference<List<Recommendation>>() {}
@@ -126,7 +126,7 @@ class ProductCompositeIntegration(
 
     override fun getReviews(productId: Int): List<Review> {
         return try {
-            val url = reviewServiceUrl + productId
+            val url = "$reviewServiceUrl?productId=$productId"
             log.debug("Will call getReviews API on URL: $url")
 
             val responseType = object : ParameterizedTypeReference<List<Review>>() {}

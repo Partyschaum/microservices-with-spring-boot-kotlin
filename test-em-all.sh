@@ -73,14 +73,52 @@ function waitForService() {
   echo "DONE, continues..."
 }
 
+function recreateComposite() {
+  local productId=$1
+  local composite=$2
+
+  assertCurl 200 "curl -X DELETE http://$HOST:$PORT/product-composite/${productId} -s"
+  curl -X POST http://$HOST:$PORT/product-composite -H "Content-Type: application/json" --data "$composite"
+}
+
+function setupTestdata() {
+  body=\
+'{"productId":1,"name":"product 1","weight":1, "recommendations":[
+        {"recommendationId":1,"author":"author 1","rate":1,"content":"content 1"},
+        {"recommendationId":2,"author":"author 2","rate":2,"content":"content 2"},
+        {"recommendationId":3,"author":"author 3","rate":3,"content":"content 3"}
+    ], "reviews":[
+        {"reviewId":1,"author":"author 1","subject":"subject 1","content":"content 1"},
+        {"reviewId":2,"author":"author 2","subject":"subject 2","content":"content 2"},
+        {"reviewId":3,"author":"author 3","subject":"subject 3","content":"content 3"}
+    ]}'
+  recreateComposite 1 "$body"
+
+  body=\
+'{"productId":113,"name":"product 113","weight":113, "reviews":[
+    {"reviewId":1,"author":"author 1","subject":"subject 1","content":"content 1"},
+    {"reviewId":2,"author":"author 2","subject":"subject 2","content":"content 2"},
+    {"reviewId":3,"author":"author 3","subject":"subject 3","content":"content 3"}
+]}'
+  recreateComposite 113 "$body"
+
+  body=\
+'{"productId":213,"name":"product 213","weight":213, "recommendations":[
+    {"recommendationId":1,"author":"author 1","rate":1,"content":"content 1"},
+    {"recommendationId":2,"author":"author 2","rate":2,"content":"content 2"},
+    {"recommendationId":3,"author":"author 3","rate":3,"content":"content 3"}
+]}'
+  recreateComposite 213 "$body"
+}
+
 set -e
 
-echo "Start Tests:" $(date)
+echo "Start Tests:" "$(date)"
 
 echo "HOST=${HOST}"
 echo "PORT=${PORT}"
 
-if [[ $@ == *"start"* ]]; then
+if [[ $* == *"start"* ]]; then
   echo "Restarting the test environment..."
   echo "$ docker-compose down --remove-orphans"
   docker-compose down --remove-orphans
@@ -88,11 +126,9 @@ if [[ $@ == *"start"* ]]; then
   docker-compose up -d
 fi
 
-# TODO: Replace this with a custom healthcheck in the docker-compose (https://blog.sixeyed.com/docker-healthchecks-why-not-to-use-curl-or-iwr/)
-echo "Waiting for 5 seconds..."
-sleep 5s
+waitForService curl -X DELETE http://$HOST:$PORT/product-composite/13
 
-waitForService curl http://$HOST:$PORT/product-composite/$PROD_ID_REVS_RECS
+setupTestdata
 
 # Verify that a normal request works, expect three recommendations and three reviews
 assertCurl 200 "curl http://$HOST:$PORT/product-composite/$PROD_ID_REVS_RECS -s"

@@ -42,7 +42,7 @@ class ProductCompositeServiceImpl(
                 )
             )
 
-            productAggregate.recommendations.map {
+            productAggregate.recommendations?.map {
                 integration.createRecommendation(
                     Recommendation(
                         productId = productAggregate.productId,
@@ -55,7 +55,7 @@ class ProductCompositeServiceImpl(
                 )
             }
 
-            productAggregate.reviews.map {
+            productAggregate.reviews?.map {
                 integration.createReview(
                     Review(
                         productId = productAggregate.productId,
