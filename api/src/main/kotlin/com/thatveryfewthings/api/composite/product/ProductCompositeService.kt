@@ -33,7 +33,7 @@ interface ProductCompositeService {
         value = ["/product-composite/{productId}"],
         produces = [MediaType.APPLICATION_JSON_VALUE],
     )
-    fun getProduct(
+    fun getCompositeProduct(
         @PathVariable
         productId: Int,
     ): ProductAggregate
