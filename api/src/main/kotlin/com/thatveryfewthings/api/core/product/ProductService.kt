@@ -2,6 +2,7 @@ package com.thatveryfewthings.api.core.product
 
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 
 interface ProductService {
 
@@ -19,7 +20,7 @@ interface ProductService {
     fun getProduct(
         @PathVariable
         productId: Int,
-    ): Product
+    ): Mono<Product>
 
     /**
      * Sample usage:
@@ -38,7 +39,7 @@ interface ProductService {
     fun createProduct(
         @RequestBody
         product: Product,
-    ): Product
+    ): Mono<Product>
 
     /**
      * Sample usage:
@@ -52,5 +53,5 @@ interface ProductService {
     fun deleteProduct(
         @PathVariable
         productId: Int,
-    )
+    ): Mono<Void>
 }

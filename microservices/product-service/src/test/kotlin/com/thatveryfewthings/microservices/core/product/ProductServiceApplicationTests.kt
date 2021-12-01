@@ -2,8 +2,6 @@ package com.thatveryfewthings.microservices.core.product
 
 import com.thatveryfewthings.api.core.product.Product
 import com.thatveryfewthings.microservices.core.product.persistence.ProductRepository
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -13,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.kotlin.core.publisher.toMono
+import reactor.test.StepVerifier
 
 @SpringBootTest(
     webEnvironment = RANDOM_PORT,
@@ -27,7 +26,7 @@ class ProductServiceApplicationTests(
 
     @BeforeEach
     fun clearDb() {
-        repository.deleteAll()
+        repository.deleteAll().block()
     }
 
     @Test
@@ -35,7 +34,10 @@ class ProductServiceApplicationTests(
         // Given
         val productId = 1
         postAndVerifyProduct(productId, HttpStatus.OK)
-        assertNotNull(repository.findByProductId(productId))
+
+        StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(1)
+            .verifyComplete()
 
         // When
         getAndVerifyProduct(productId, HttpStatus.OK) {
@@ -50,7 +52,10 @@ class ProductServiceApplicationTests(
         // Given
         val productId = 1
         postAndVerifyProduct(productId, HttpStatus.OK)
-        assertNotNull(repository.findByProductId(productId))
+
+        StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(1)
+            .verifyComplete()
 
         // When
         postAndVerifyProduct(productId, HttpStatus.UNPROCESSABLE_ENTITY) {
@@ -66,13 +71,18 @@ class ProductServiceApplicationTests(
         // Given
         val productId = 1
         postAndVerifyProduct(productId, HttpStatus.OK)
-        assertNotNull(repository.findByProductId(productId))
+
+        StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(1)
+            .verifyComplete()
 
         // When
         deleteAndVerifyProduct(productId, HttpStatus.OK)
 
         // Then
-        assertNull(repository.findByProductId(productId))
+        StepVerifier.create(repository.findByProductId(productId))
+            .verifyComplete()
+
         deleteAndVerifyProduct(productId, HttpStatus.OK)
     }
 
