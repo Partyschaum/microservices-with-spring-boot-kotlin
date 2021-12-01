@@ -2,6 +2,8 @@ package com.thatveryfewthings.api.core.review
 
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 interface ReviewService {
 
@@ -19,7 +21,7 @@ interface ReviewService {
     fun getReviews(
         @RequestParam(value = "productId", required = true)
         productId: Int,
-    ): List<Review>
+    ): Flux<Review>
 
     /**
      * Sample usage:
@@ -38,7 +40,7 @@ interface ReviewService {
     fun createReview(
         @RequestBody
         review: Review,
-    ): Review
+    ): Mono<Review>
 
     /**
      * Sample usage:
@@ -52,5 +54,5 @@ interface ReviewService {
     fun deleteReviews(
         @RequestParam(value = "productId", required = true)
         productId: Int,
-    )
+    ): Mono<Void>
 }

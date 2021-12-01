@@ -15,6 +15,10 @@ spring:
     username: user
     password: secret
 
+app:
+  jdbc-thread-pool-size: 10
+  jdbc-task-queue-size: 100
+
 logging:
   level:
     root: info
