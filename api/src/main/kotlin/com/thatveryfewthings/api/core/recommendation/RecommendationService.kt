@@ -2,6 +2,8 @@ package com.thatveryfewthings.api.core.recommendation
 
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 
 interface RecommendationService {
@@ -20,7 +22,7 @@ interface RecommendationService {
     fun getRecommendations(
         @RequestParam(value = "productId", required = true)
         productId: Int,
-    ): List<Recommendation>
+    ): Flux<Recommendation>
 
     /**
      * Sample usage:
@@ -39,7 +41,7 @@ interface RecommendationService {
     fun createRecommendation(
         @RequestBody
         recommendation: Recommendation,
-    ): Recommendation
+    ): Mono<Recommendation>
 
     /**
      * Sample usage:
@@ -53,5 +55,5 @@ interface RecommendationService {
     fun deleteRecommendations(
         @RequestParam(value = "productId", required = true)
         productId: Int
-    )
+    ): Mono<Void>
 }

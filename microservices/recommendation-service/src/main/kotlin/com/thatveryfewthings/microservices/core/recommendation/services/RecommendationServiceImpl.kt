@@ -8,6 +8,8 @@ import com.thatveryfewthings.microservices.core.recommendation.persistence.Recom
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.web.bind.annotation.RestController
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 @RestController
 class RecommendationServiceImpl(
@@ -18,42 +20,47 @@ class RecommendationServiceImpl(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun getRecommendations(productId: Int): List<Recommendation> {
+    override fun getRecommendations(productId: Int): Flux<Recommendation> {
         if (productId < 1) {
             throw InvalidInputException("Invalid productId: $productId")
         }
 
-        val recommendationEntities = repository.findByProductId(productId)
-        val recommendations = mapper.entityListToApiList(recommendationEntities).map {
-            it.copy(
-                serviceAddress = serviceUtil.serviceAddress
-            )
-        }
-
-        return recommendations.also {
-            log.debug("getRecommendation: response size: ${it.size}")
-        }
+        return repository.findByProductId(productId)
+            .log()
+            .map(mapper::entityToApi)
+            .map { it.addServiceAddress() }
     }
 
-    override fun createRecommendation(recommendation: Recommendation): Recommendation {
-        return try {
-            val recommendationEntity = mapper.apiToEntity(recommendation)
-            val newRecommendation = repository.save(recommendationEntity)
-
-            log.debug("createRecommendation: created a recommendation entity: ${recommendation.productId}/${recommendation.recommendationId}")
-
-            mapper.entityToApi(newRecommendation).copy(
-                serviceAddress = serviceUtil.serviceAddress
-            )
-        } catch (ex: DuplicateKeyException) {
-            throw InvalidInputException("Duplicate key, Product id: ${recommendation.productId}, Recommendation id: ${recommendation.recommendationId}")
+    override fun createRecommendation(recommendation: Recommendation): Mono<Recommendation> {
+        if (recommendation.productId < 1) {
+            throw InvalidInputException("Invalid : ${recommendation.productId}")
         }
+
+        val recommendationEntity = mapper.apiToEntity(recommendation)
+
+        return repository.save(recommendationEntity)
+            .log()
+            .onErrorMap(DuplicateKeyException::class.java) {
+                InvalidInputException("Duplicate key, Product id: ${recommendation.productId}, Recommendation id: ${recommendation.recommendationId}")
+            }
+            .map(mapper::entityToApi)
     }
 
-    override fun deleteRecommendations(productId: Int) {
+    override fun deleteRecommendations(productId: Int): Mono<Void> {
+        if (productId < 1) {
+            throw InvalidInputException("Invalid productId: $productId")
+        }
+
         log.debug("deleteRecommendations: tries to delete recommendations for the product with the productId: $productId")
-        repository.findByProductId(productId).let {
-            repository.deleteAll(it)
-        }
+        return repository
+            .deleteAll(
+                repository.findByProductId(productId)
+                    .log()
+            )
+            .log()
     }
+
+    private fun Recommendation.addServiceAddress() = copy(
+        serviceAddress = serviceUtil.serviceAddress
+    )
 }

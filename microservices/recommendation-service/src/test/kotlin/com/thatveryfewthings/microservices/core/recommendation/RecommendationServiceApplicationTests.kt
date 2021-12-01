@@ -3,7 +3,6 @@ package com.thatveryfewthings.microservices.core.recommendation
 import com.thatveryfewthings.api.core.product.Product
 import com.thatveryfewthings.api.core.recommendation.Recommendation
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationRepository
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -13,6 +12,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.kotlin.core.publisher.toMono
+import reactor.test.StepVerifier
 
 @SpringBootTest(
     webEnvironment = RANDOM_PORT,
@@ -27,7 +27,7 @@ class RecommendationServiceApplicationTests(
 
     @BeforeEach
     fun clearDb() {
-        repository.deleteAll()
+        repository.deleteAll().block()
     }
 
     @Test
@@ -35,7 +35,9 @@ class RecommendationServiceApplicationTests(
         // Given
         val productId = 1
         val recommendationIds = listOf(1, 2, 3)
-        assertEquals(0, repository.findByProductId(productId).size)
+
+        StepVerifier.create(repository.findByProductId(productId))
+            .verifyComplete()
 
         // When
         recommendationIds.forEach {
@@ -43,14 +45,16 @@ class RecommendationServiceApplicationTests(
         }
 
         // Then
-        assertEquals(recommendationIds.size, repository.findByProductId(productId).size)
+        StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(recommendationIds.size.toLong())
+            .verifyComplete()
+
         getAndVerifyRecommendations(productId, HttpStatus.OK) {
             jsonPath("$.length()").isEqualTo(recommendationIds.size)
 
             recommendationIds.forEachIndexed { index, id ->
                 jsonPath("$[$index].productId").isEqualTo(productId)
                 jsonPath("$[$index].recommendationId").isEqualTo(id)
-
             }
         }
     }
@@ -60,7 +64,10 @@ class RecommendationServiceApplicationTests(
         // Given
         val productId = 1
         val recommendationId = 1
-        assertEquals(0, repository.count())
+
+        StepVerifier.create(repository.count())
+            .expectNext(0)
+            .verifyComplete()
 
         // When
         postAndVerifyRecommendation(productId, recommendationId, HttpStatus.OK) {
@@ -69,12 +76,18 @@ class RecommendationServiceApplicationTests(
         }
 
         // Then
-        assertEquals(1, repository.count())
+        StepVerifier.create(repository.count())
+            .expectNext(1)
+            .verifyComplete()
+
         postAndVerifyRecommendation(productId, recommendationId, HttpStatus.UNPROCESSABLE_ENTITY) {
             jsonPath("$.path").isEqualTo("/recommendation")
             jsonPath("$.message").isEqualTo("Duplicate key, Product id: $productId, Recommendation id: $recommendationId")
         }
-        assertEquals(1, repository.count())
+
+        StepVerifier.create(repository.count())
+            .expectNext(1)
+            .verifyComplete()
     }
 
     @Test
@@ -84,13 +97,19 @@ class RecommendationServiceApplicationTests(
         val recommendationId = 1
 
         postAndVerifyRecommendation(productId, recommendationId, HttpStatus.OK)
-        assertEquals(1, repository.findByProductId(productId).size)
+
+        StepVerifier.create(repository.count())
+            .expectNext(1)
+            .verifyComplete()
 
         // When
         deleteAndVerifyRecommendations(productId, HttpStatus.OK)
 
         // Then
-        assertEquals(0, repository.findByProductId(productId).size)
+        StepVerifier.create(repository.count())
+            .expectNext(0)
+            .verifyComplete()
+
         deleteAndVerifyRecommendations(productId, HttpStatus.OK)
     }
 
