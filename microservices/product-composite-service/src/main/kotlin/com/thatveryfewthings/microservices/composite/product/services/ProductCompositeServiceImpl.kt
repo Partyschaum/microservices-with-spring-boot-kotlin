@@ -7,6 +7,7 @@ import com.thatveryfewthings.api.core.review.Review
 import com.thatveryfewthings.api.http.ServiceUtil
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.RestController
+import reactor.core.publisher.Mono
 
 @RestController
 class ProductCompositeServiceImpl(
@@ -16,23 +17,58 @@ class ProductCompositeServiceImpl(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun getCompositeProduct(productId: Int): ProductAggregate {
+    override fun getCompositeProduct(productId: Int): Mono<ProductAggregate> {
         log.debug("getCompositeProduct: lookup a product aggregate for productId $productId")
 
-        val product = integration.getProduct(productId)
-        val recommendations = integration.getRecommendations(productId)
-        val reviews = integration.getReviews(productId)
-
-        log.debug("getCompositeProduct: aggregate entity found for productId: $product")
-
-        return assembleProductAggregate(product, recommendations, reviews, serviceUtil.serviceAddress)
+        return Mono
+            .zip(
+                { values ->
+                    @Suppress("UNCHECKED_CAST")
+                    assembleProductAggregate(
+                        values[0] as Product,
+                        values[1] as List<Recommendation>,
+                        values[2] as List<Review>,
+                        serviceUtil.serviceAddress,
+                    )
+                },
+                integration.getProduct(productId),
+                integration.getRecommendations(productId).collectList(),
+                integration.getReviews(productId).collectList(),
+            )
+            .doOnError { log.warn("getCompositeProduct failed: $it") }
+            .log()
     }
 
-    override fun createCompositeProduct(productAggregate: ProductAggregate) {
-        try {
+    override fun createCompositeProduct(productAggregate: ProductAggregate): Mono<Void> {
+        log.debug("createCompositeProduct: creates a new composite entity for productId: ${productAggregate.productId}")
 
-            log.debug("createCompositeProduct: creates a new composite entity for productId: ${productAggregate.productId}")
+        val recommendations = productAggregate.recommendations?.map {
+            integration.createRecommendation(
+                Recommendation(
+                    productId = productAggregate.productId,
+                    recommendationId = it.recommendationId,
+                    author = it.author,
+                    rate = it.rate,
+                    content = it.content,
+                    serviceAddress = null,
+                )
+            )
+        }?.toTypedArray() ?: arrayOf(Mono.empty())
 
+        val reviews = productAggregate.reviews?.map {
+            integration.createReview(
+                Review(
+                    productId = productAggregate.productId,
+                    reviewId = it.reviewId,
+                    author = it.author,
+                    subject = it.subject,
+                    content = it.content,
+                    serviceAddress = null,
+                )
+            )
+        }?.toTypedArray() ?: arrayOf(Mono.empty())
+
+        return Mono.`when`(
             integration.createProduct(
                 Product(
                     productId = productAggregate.productId,
@@ -40,49 +76,20 @@ class ProductCompositeServiceImpl(
                     weight = productAggregate.weight,
                     serviceAddress = null,
                 )
-            )
-
-            productAggregate.recommendations?.map {
-                integration.createRecommendation(
-                    Recommendation(
-                        productId = productAggregate.productId,
-                        recommendationId = it.recommendationId,
-                        author = it.author,
-                        rate = it.rate,
-                        content = it.content,
-                        serviceAddress = null,
-                    )
-                )
-            }
-
-            productAggregate.reviews?.map {
-                integration.createReview(
-                    Review(
-                        productId = productAggregate.productId,
-                        reviewId = it.reviewId,
-                        author = it.author,
-                        subject = it.subject,
-                        content = it.content,
-                        serviceAddress = null,
-                    )
-                )
-            }
-
-            log.debug("createCompositeProduct: composite entities created for productId: ${productAggregate.productId}")
-        } catch (ex: RuntimeException) {
-            log.warn("createCompositeProduct failed", ex)
-            throw ex
-        }
+            ),
+            *recommendations,
+            *reviews,
+        ).log()
     }
 
-    override fun deleteCompositeProduct(productId: Int) {
+    override fun deleteCompositeProduct(productId: Int): Mono<Void> {
         log.debug("deleteCompositeProduct: deletes a product aggregate for productId: $productId")
 
-        integration.deleteProduct(productId)
-        integration.deleteRecommendations(productId)
-        integration.deleteReviews(productId)
-
-        log.debug("deleteCompositeProduct: aggregate entities deleted for productId: $productId")
+        return Mono.`when`(
+            integration.deleteProduct(productId),
+            integration.deleteRecommendations(productId),
+            integration.deleteReviews(productId),
+        ).log()
     }
 
     private fun assembleProductAggregate(
@@ -110,7 +117,7 @@ class ProductCompositeServiceImpl(
             weight = product.weight,
             recommendations = recommendationSummaries,
             reviews = reviewSummaries,
-            serviceAddresses = ServiceAddresses(serviceAddress, productAddress, reviewAddress, recommendationAddress)
+            serviceAddresses = ServiceAddresses(serviceAddress, productAddress, reviewAddress, recommendationAddress),
         )
     }
 }

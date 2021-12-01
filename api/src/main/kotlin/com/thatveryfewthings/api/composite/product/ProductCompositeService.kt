@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 
 @Tag(name = "ProductComposite", description = "REST API for composite product information")
 interface ProductCompositeService {
@@ -36,7 +37,7 @@ interface ProductCompositeService {
     fun getCompositeProduct(
         @PathVariable
         productId: Int,
-    ): ProductAggregate
+    ): Mono<ProductAggregate>
 
     /**
      * Sample usage:
@@ -66,7 +67,7 @@ interface ProductCompositeService {
     fun createCompositeProduct(
         @RequestBody
         productAggregate: ProductAggregate,
-    )
+    ): Mono<Void>
 
     @Operation(
         summary = "\${api.product-composite.delete-composite-product.summary}",
@@ -86,5 +87,5 @@ interface ProductCompositeService {
     fun deleteCompositeProduct(
         @PathVariable
         productId: Int,
-    )
+    ): Mono<Void>
 }

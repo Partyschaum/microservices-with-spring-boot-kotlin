@@ -20,6 +20,9 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDO
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -42,7 +45,7 @@ class ProductCompositeServiceApplicationTests(
             name = "name",
             weight = 1,
             serviceAddress = "mock-address",
-        )
+        ).toMono()
 
         every { compositeIntegration.createRecommendation(any()) } returns Recommendation(
             productId = productIdOk,
@@ -51,7 +54,7 @@ class ProductCompositeServiceApplicationTests(
             rate = 1,
             content = "content",
             serviceAddress = "mock-address",
-        )
+        ).toMono()
 
         every { compositeIntegration.createReview(any()) } returns Review(
             productId = productIdOk,
@@ -60,18 +63,18 @@ class ProductCompositeServiceApplicationTests(
             subject = "subject",
             content = "content",
             serviceAddress = "mock-address",
-        )
+        ).toMono()
 
-        every { compositeIntegration.deleteProduct(any()) } returns Unit
-        every { compositeIntegration.deleteRecommendations(any()) } returns Unit
-        every { compositeIntegration.deleteReviews(any()) } returns Unit
+        every { compositeIntegration.deleteProduct(any()) } returns Mono.empty()
+        every { compositeIntegration.deleteRecommendations(any()) } returns Flux.empty()
+        every { compositeIntegration.deleteReviews(any()) } returns Flux.empty()
 
         every { compositeIntegration.getProduct(productIdOk) } returns Product(
             productId = productIdOk,
             name = "name",
             weight = 1,
             serviceAddress = "mock-address",
-        )
+        ).toMono()
 
         every { compositeIntegration.getRecommendations(productIdOk) } returns listOf(
             Recommendation(
@@ -82,7 +85,7 @@ class ProductCompositeServiceApplicationTests(
                 content = "content",
                 serviceAddress = "mock-address",
             )
-        )
+        ).toFlux()
 
         every { compositeIntegration.getReviews(productIdOk) } returns listOf(
             Review(
@@ -93,7 +96,7 @@ class ProductCompositeServiceApplicationTests(
                 content = "content",
                 serviceAddress = "mock-address",
             )
-        )
+        ).toFlux()
 
         every { compositeIntegration.getProduct(productIdNotFound) } throws NotFoundException("NOT FOUND: $productIdNotFound")
 
