@@ -1,8 +1,9 @@
 package com.thatveryfewthings.microservices.core.recommendation.persistence
 
-import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.reactive.ReactiveCrudRepository
+import reactor.core.publisher.Flux
 
-interface RecommendationRepository : CrudRepository<RecommendationEntity, String> {
+interface RecommendationRepository : ReactiveCrudRepository<RecommendationEntity, String> {
 
-    fun findByProductId(productId: Int): List<RecommendationEntity>
+    fun findByProductId(productId: Int): Flux<RecommendationEntity>
 }

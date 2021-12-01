@@ -3,34 +3,30 @@ package com.thatveryfewthings.microservices.core.recommendation
 import com.thatveryfewthings.MongoDbTest
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationEntity
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.mongo.embedded.EmbeddedMongoAutoConfiguration
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.dao.OptimisticLockingFailureException
-import org.springframework.data.repository.findByIdOrNull
 import org.testcontainers.junit.jupiter.Testcontainers
+import reactor.test.StepVerifier
 
 @DataMongoTest(excludeAutoConfiguration = [EmbeddedMongoAutoConfiguration::class])
 @Testcontainers
 class PersistenceTests(
     @Autowired
-    private val repository: RecommendationRepository
+    private val repository: RecommendationRepository,
 ) : MongoDbTest() {
 
     @BeforeEach
     fun clearTable() {
-        repository.deleteAll()
+        repository.deleteAll().block()
     }
 
     @Test
     fun create() {
-        // Given
         val newEntity = RecommendationEntity(
             productId = 1,
             recommendationId = 2,
@@ -38,135 +34,133 @@ class PersistenceTests(
             rating = 3,
             content = "some content"
         )
-        repository.save(newEntity)
+        StepVerifier.create(repository.save(newEntity))
+            .expectRecommendationsAreEqual(newEntity)
+            .verifyComplete()
 
-        // When
-        val persistedEntity = repository.findByIdOrNull(newEntity.id!!)!!
+        StepVerifier.create(repository.findById(newEntity.id!!))
+            .expectRecommendationsAreEqual(newEntity)
+            .verifyComplete()
 
-        // Then
-        assertEqualsRecommendation(newEntity, persistedEntity)
-        assertEquals(1, repository.count())
+        StepVerifier.create(repository.count())
+            .expectNext(1)
+            .verifyComplete()
     }
 
     @Test
     fun update() {
-        // Given
-        val persistedEntity = aPersistedRecommendationEntity(
+        withPersistedRecommendationEntity(
             productId = 2,
             recommendationId = 3,
             author = "Me",
             rating = 4,
             content = "some content"
-        )
+        ) { persistedEntity ->
 
-        // When
-        persistedEntity.rating = 10
-        repository.save(persistedEntity)
+            persistedEntity.rating = 10
 
-        // Then
-        assertEquals(1, persistedEntity.version)
-        assertEquals(10, persistedEntity.rating)
+            StepVerifier.create(repository.save(persistedEntity))
+                .expectNextMatches {
+                    it.version == 1 && it.rating == 10
+                }
+                .verifyComplete()
+        }
     }
 
     @Test
     fun delete() {
-        // Given
-        val persistedEntity = aPersistedRecommendationEntity(
+        withPersistedRecommendationEntity(
             productId = 3,
             recommendationId = 4,
             author = "Me",
             rating = 5,
             content = "some content"
-        )
+        ) { persistedEntity ->
 
-        // When
-        repository.delete(persistedEntity)
+            StepVerifier.create(repository.delete(persistedEntity))
+                .verifyComplete()
 
-        // Then
-        assertFalse(repository.existsById(persistedEntity.id!!))
+            StepVerifier.create(repository.existsById(persistedEntity.id!!))
+                .expectNext(false)
+                .verifyComplete()
+        }
     }
 
     @Test
     fun getByProductId() {
-        // Given
-        val persistedEntity = aPersistedRecommendationEntity(
+        withPersistedRecommendationEntity(
             productId = 4,
             recommendationId = 5,
             author = "Me",
             rating = 6,
             content = "some content"
-        )
+        ) { persistedEntity ->
 
-        // When
-        val foundEntity = repository.findByProductId(persistedEntity.productId)
-
-        // Then
-        assertEquals(1, foundEntity.size)
-        assertEqualsRecommendation(persistedEntity, foundEntity.first())
+            StepVerifier.create(repository.findByProductId(persistedEntity.productId).collectList())
+                .expectNextMatches { it.size == 1 && areRecommendationsEqual(persistedEntity, it.first()) }
+                .verifyComplete()
+        }
     }
 
     @Test
     fun duplicateError() {
-        // Given
-        aPersistedRecommendationEntity(
+        withPersistedRecommendationEntity(
             productId = 5,
             recommendationId = 6,
             author = "Me",
             rating = 7,
             content = "some content"
-        )
+        ) {
 
-        // When
-        val newEntity = RecommendationEntity(
-            productId = 5,
-            recommendationId = 6,
-            author = "Me",
-            rating = 7,
-            content = "some content"
-        )
+            val newEntity = RecommendationEntity(
+                productId = 5,
+                recommendationId = 6,
+                author = "Me",
+                rating = 7,
+                content = "some content"
+            )
 
-        // Then
-        assertThrows<DuplicateKeyException> {
-            repository.save(newEntity)
+            StepVerifier.create(repository.save(newEntity))
+                .expectError(DuplicateKeyException::class.java)
+                .verify()
         }
     }
 
     @Test
     fun optimisticLockingError() {
-        // Given
-        val persistedEntity = aPersistedRecommendationEntity(
+        withPersistedRecommendationEntity(
             productId = 7,
             recommendationId = 8,
             author = "Me",
             rating = 9,
             content = "some content"
-        )
+        ) { persistedEntity ->
 
-        val foundEntity1 = repository.findByIdOrNull(persistedEntity.id!!)!!
-        val foundEntity2 = repository.findByIdOrNull(persistedEntity.id!!)!!
+            val foundEntity1 = repository.findById(persistedEntity.id!!).block()!!
+            val foundEntity2 = repository.findById(persistedEntity.id!!).block()!!
 
-        // When
-        foundEntity1.content = "some different content"
-        repository.save(foundEntity1)
+            foundEntity1.content = "some different content"
+            repository.save(foundEntity1).block()
 
-        // Then
-        assertThrows<OptimisticLockingFailureException> {
-            foundEntity2.content = "some completely different content"
-            repository.save(foundEntity2)
+            StepVerifier.create(repository.save(foundEntity2))
+                .expectError(OptimisticLockingFailureException::class.java)
+                .verify()
+
+            StepVerifier.create(repository.findById(persistedEntity.id!!))
+                .expectNextMatches {
+                    it.version == 1 && it.content == "some different content"
+                }
         }
-
-        val updatedEntity = repository.findByIdOrNull(persistedEntity.id!!)!!
-        assertEquals(1, updatedEntity.version)
-        assertEquals("some different content", updatedEntity.content)
     }
 
-    private fun aPersistedRecommendationEntity(
+    private fun withPersistedRecommendationEntity(
         productId: Int,
         recommendationId: Int,
         author: String,
         rating: Int,
         content: String,
-    ): RecommendationEntity {
+        onEntity: (entity: RecommendationEntity) -> Unit,
+    ) {
         val newEntity = RecommendationEntity(
             productId = productId,
             recommendationId = recommendationId,
@@ -174,17 +168,26 @@ class PersistenceTests(
             rating = rating,
             content = content,
         )
-        repository.save(newEntity)
-        return repository.findByIdOrNull(newEntity.id!!)!!
+        return repository.save(newEntity)
+            .doOnNext { repository.findById(newEntity.id!!) }
+            .subscribe { onEntity(it) }
+            .dispose()
     }
 
-    private fun assertEqualsRecommendation(expectedEntity: RecommendationEntity, actualEntity: RecommendationEntity) {
-        assertEquals(expectedEntity.id, actualEntity.id)
-        assertEquals(expectedEntity.version, actualEntity.version)
-        assertEquals(expectedEntity.productId, actualEntity.productId)
-        assertEquals(expectedEntity.recommendationId, actualEntity.recommendationId)
-        assertEquals(expectedEntity.author, actualEntity.author)
-        assertEquals(expectedEntity.rating, actualEntity.rating)
-        assertEquals(expectedEntity.content, actualEntity.content)
+    private fun areRecommendationsEqual(
+        expectedEntity: RecommendationEntity,
+        actualEntity: RecommendationEntity
+    ): Boolean {
+        return expectedEntity.id == actualEntity.id &&
+                expectedEntity.version == actualEntity.version &&
+                expectedEntity.productId == actualEntity.productId &&
+                expectedEntity.recommendationId == actualEntity.recommendationId &&
+                expectedEntity.author == actualEntity.author &&
+                expectedEntity.rating == actualEntity.rating &&
+                expectedEntity.content == actualEntity.content
+    }
+
+    private fun StepVerifier.Step<RecommendationEntity>.expectRecommendationsAreEqual(expectedEntity: RecommendationEntity): StepVerifier.Step<RecommendationEntity> {
+        return expectNextMatches { areRecommendationsEqual(expectedEntity, it) }
     }
 }
