@@ -1,16 +1,21 @@
 package com.thatveryfewthings.microservices.core.product
 
 import com.thatveryfewthings.api.core.product.Product
+import com.thatveryfewthings.api.event.Event
+import com.thatveryfewthings.api.event.Event.Type.CREATE
+import com.thatveryfewthings.api.event.Event.Type.DELETE
+import com.thatveryfewthings.api.exceptions.InvalidInputException
 import com.thatveryfewthings.microservices.core.product.persistence.ProductRepository
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
-import reactor.kotlin.core.publisher.toMono
 import reactor.test.StepVerifier
 
 @SpringBootTest(
@@ -22,6 +27,8 @@ class ProductServiceApplicationTests(
     private val client: WebTestClient,
     @Autowired
     private val repository: ProductRepository,
+    @Autowired
+    private val messageProcessor: MessageProcessor
 ) {
 
     @BeforeEach
@@ -33,16 +40,28 @@ class ProductServiceApplicationTests(
     fun getProductById() {
         // Given
         val productId = 1
-        postAndVerifyProduct(productId, HttpStatus.OK)
 
+        StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(0)
+            .verifyComplete()
+
+        StepVerifier.create(repository.count())
+            .expectNext(0)
+            .verifyComplete()
+
+        // When
+        sendCreateProductEvent(productId)
+
+        // Then
         StepVerifier.create(repository.findByProductId(productId))
             .expectNextCount(1)
             .verifyComplete()
 
-        // When
-        getAndVerifyProduct(productId, HttpStatus.OK) {
+        StepVerifier.create(repository.count())
+            .expectNext(1)
+            .verifyComplete()
 
-            // Then
+        getAndVerifyProduct(productId, HttpStatus.OK) {
             jsonPath("$.productId").isEqualTo(productId)
         }
     }
@@ -51,39 +70,43 @@ class ProductServiceApplicationTests(
     fun duplicateError() {
         // Given
         val productId = 1
-        postAndVerifyProduct(productId, HttpStatus.OK)
+
+        sendCreateProductEvent(productId)
 
         StepVerifier.create(repository.findByProductId(productId))
             .expectNextCount(1)
             .verifyComplete()
 
-        // When
-        postAndVerifyProduct(productId, HttpStatus.UNPROCESSABLE_ENTITY) {
+        val exception = assertThrows<InvalidInputException>("Expected a InvalidInputException here!") {
 
-            // Then
-            jsonPath("$.path").isEqualTo("/product")
-            jsonPath("$.message").isEqualTo("Duplicate key, Product id: $productId")
+            // When
+            sendCreateProductEvent(productId)
         }
+
+        // Then
+        assertEquals("Duplicate key, Product id: $productId", exception.message)
     }
 
     @Test
     fun deleteProduct() {
         // Given
         val productId = 1
-        postAndVerifyProduct(productId, HttpStatus.OK)
+
+        sendCreateProductEvent(productId)
 
         StepVerifier.create(repository.findByProductId(productId))
             .expectNextCount(1)
             .verifyComplete()
 
         // When
-        deleteAndVerifyProduct(productId, HttpStatus.OK)
+        sendDeleteProductEvent(productId)
 
         // Then
         StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(0)
             .verifyComplete()
 
-        deleteAndVerifyProduct(productId, HttpStatus.OK)
+        sendDeleteProductEvent(productId)
     }
 
     @Test
@@ -152,11 +175,7 @@ class ProductServiceApplicationTests(
         bodyAssertions(bodyContentSpec)
     }
 
-    private fun postAndVerifyProduct(
-        productId: Int,
-        expectedStatus: HttpStatus,
-        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {},
-    ) {
+    private fun sendCreateProductEvent(productId: Int) {
         val product = Product(
             productId = productId,
             name = "Name $productId",
@@ -164,30 +183,22 @@ class ProductServiceApplicationTests(
             serviceAddress = "some service address",
         )
 
-        val bodyContentSpec = client.post()
-            .uri("/product")
-            .body(product.toMono(), Product::class.java)
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isEqualTo(expectedStatus)
-            .expectHeader().contentType(APPLICATION_JSON)
-            .expectBody()
+        val event = Event<Int, Product?>(
+            eventType = CREATE,
+            key = productId,
+            data = product,
+        )
 
-        bodyAssertions(bodyContentSpec)
+        messageProcessor.accept(event)
     }
 
-    private fun deleteAndVerifyProduct(
-        productId: Int,
-        expectedStatus: HttpStatus,
-        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {}
-    ) {
-        val bodyContentSpec = client.delete()
-            .uri("/product/$productId")
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isEqualTo(expectedStatus)
-            .expectBody()
+    private fun sendDeleteProductEvent(productId: Int) {
+        val event = Event<Int, Product?>(
+            eventType = DELETE,
+            key = productId,
+            data = null,
+        )
 
-        bodyAssertions(bodyContentSpec)
+        messageProcessor.accept(event)
     }
 }
