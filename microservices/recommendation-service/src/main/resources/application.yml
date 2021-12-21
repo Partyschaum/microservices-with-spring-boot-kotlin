@@ -4,15 +4,58 @@ server:
     include-message: always
 
 spring:
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
   data:
     mongodb:
       host: localhost
       port: 27017
       database: recommendation-db
       auto-index-creation: true
+  cloud:
+    function:
+      definition: messageProcessor
+    stream:
+      default-binder: rabbit
+      bindings:
+        messageProcessor-in-0:
+          destination: recommendations
+          contentType: application/json
+          group: recommendationsGroup
+          consumer:
+            maxAttempts: 3
+            backOffInitialInterval: 500
+            backOffMaxInterval: 1000
+            backOffMultiplier: 2.0
+      rabbit:
+        bindings:
+          messageProcessor-in-0:
+            consumer:
+              autoBindDlq: true
+              republishToDlq: true
+      kafka:
+        binder:
+          brokers: 127.0.0.1
+          defaultBrokerPort: 9092
+        bindings:
+          messageProcessor-in-0:
+            consumer:
+              enableDlq: true
 
 logging:
   level:
     root: info
     com.thatveryfewthings: debug
     org.springframework.data.mongodb.core.MongoTemplate: debug
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"

@@ -1,17 +1,22 @@
 package com.thatveryfewthings.microservices.core.recommendation
 
-import com.thatveryfewthings.api.core.product.Product
 import com.thatveryfewthings.api.core.recommendation.Recommendation
+import com.thatveryfewthings.api.event.Event
+import com.thatveryfewthings.api.event.Event.Type.CREATE
+import com.thatveryfewthings.api.event.Event.Type.DELETE
+import com.thatveryfewthings.api.exceptions.InvalidInputException
+import com.thatveryfewthings.microservices.core.recommendation.config.MessageProcessor
 import com.thatveryfewthings.microservices.core.recommendation.persistence.RecommendationRepository
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
-import reactor.kotlin.core.publisher.toMono
 import reactor.test.StepVerifier
 
 @SpringBootTest(
@@ -23,6 +28,8 @@ class RecommendationServiceApplicationTests(
     private val client: WebTestClient,
     @Autowired
     private val repository: RecommendationRepository,
+    @Autowired
+    private val messageProcessor: MessageProcessor,
 ) {
 
     @BeforeEach
@@ -37,11 +44,15 @@ class RecommendationServiceApplicationTests(
         val recommendationIds = listOf(1, 2, 3)
 
         StepVerifier.create(repository.findByProductId(productId))
+            .expectNextCount(0)
             .verifyComplete()
 
         // When
         recommendationIds.forEach {
-            postAndVerifyRecommendation(productId, it, HttpStatus.OK)
+            sendCreateRecommendationEvent(
+                productId = productId,
+                recommendationId = it,
+            )
         }
 
         // Then
@@ -69,21 +80,23 @@ class RecommendationServiceApplicationTests(
             .expectNext(0)
             .verifyComplete()
 
-        // When
-        postAndVerifyRecommendation(productId, recommendationId, HttpStatus.OK) {
-            jsonPath("$.productId").isEqualTo(productId)
-            jsonPath("$.recommendationId").isEqualTo(recommendationId)
-        }
+        sendCreateRecommendationEvent(productId, recommendationId)
 
-        // Then
         StepVerifier.create(repository.count())
             .expectNext(1)
             .verifyComplete()
 
-        postAndVerifyRecommendation(productId, recommendationId, HttpStatus.UNPROCESSABLE_ENTITY) {
-            jsonPath("$.path").isEqualTo("/recommendation")
-            jsonPath("$.message").isEqualTo("Duplicate key, Product id: $productId, Recommendation id: $recommendationId")
+        val exception = assertThrows<InvalidInputException> {
+
+            // When
+            sendCreateRecommendationEvent(productId, recommendationId)
         }
+
+        // Then
+        assertEquals(
+            "Duplicate key, Product id: $productId, Recommendation id: $recommendationId",
+            exception.message
+        )
 
         StepVerifier.create(repository.count())
             .expectNext(1)
@@ -96,21 +109,21 @@ class RecommendationServiceApplicationTests(
         val productId = 1
         val recommendationId = 1
 
-        postAndVerifyRecommendation(productId, recommendationId, HttpStatus.OK)
+        sendCreateRecommendationEvent(productId, recommendationId)
 
         StepVerifier.create(repository.count())
             .expectNext(1)
             .verifyComplete()
 
         // When
-        deleteAndVerifyRecommendations(productId, HttpStatus.OK)
+        sendDeleteRecommendationEvent(productId)
 
         // Then
         StepVerifier.create(repository.count())
             .expectNext(0)
             .verifyComplete()
 
-        deleteAndVerifyRecommendations(productId, HttpStatus.OK)
+        sendDeleteRecommendationEvent(productId)
     }
 
     @Test
@@ -192,12 +205,7 @@ class RecommendationServiceApplicationTests(
         bodyAssertions(bodyContentSpec)
     }
 
-    private fun postAndVerifyRecommendation(
-        productId: Int,
-        recommendationId: Int,
-        expectedStatus: HttpStatus,
-        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {},
-    ) {
+    private fun sendCreateRecommendationEvent(productId: Int, recommendationId: Int) {
         val recommendation = Recommendation(
             productId = productId,
             recommendationId = recommendationId,
@@ -207,30 +215,22 @@ class RecommendationServiceApplicationTests(
             serviceAddress = "some service address",
         )
 
-        val bodyContentSpec = client.post()
-            .uri("/recommendation")
-            .body(recommendation.toMono(), Product::class.java)
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isEqualTo(expectedStatus)
-            .expectHeader().contentType(APPLICATION_JSON)
-            .expectBody()
+        val event = Event<Int, Recommendation?>(
+            eventType = CREATE,
+            key = productId,
+            data = recommendation,
+        )
 
-        bodyAssertions(bodyContentSpec)
+        messageProcessor.accept(event)
     }
 
-    private fun deleteAndVerifyRecommendations(
-        productId: Int,
-        expectedStatus: HttpStatus,
-        bodyAssertions: WebTestClient.BodyContentSpec.() -> Unit = {}
-    ) {
-        val bodyContentSpec = client.delete()
-            .uri("/recommendation?productId=$productId")
-            .accept(APPLICATION_JSON)
-            .exchange()
-            .expectStatus().isEqualTo(expectedStatus)
-            .expectBody()
+    private fun sendDeleteRecommendationEvent(productId: Int) {
+        val event = Event<Int, Recommendation?>(
+            eventType = DELETE,
+            key = productId,
+            data = null,
+        )
 
-        bodyAssertions(bodyContentSpec)
+        messageProcessor.accept(event)
     }
 }
