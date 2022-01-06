@@ -18,9 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatus.*
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.reactive.server.WebTestClient
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
@@ -66,8 +66,8 @@ class ProductCompositeServiceApplicationTests(
         ).toMono()
 
         every { compositeIntegration.deleteProduct(any()) } returns Mono.empty()
-        every { compositeIntegration.deleteRecommendations(any()) } returns Flux.empty()
-        every { compositeIntegration.deleteReviews(any()) } returns Flux.empty()
+        every { compositeIntegration.deleteRecommendations(any()) } returns Mono.empty()
+        every { compositeIntegration.deleteReviews(any()) } returns Mono.empty()
 
         every { compositeIntegration.getProduct(productIdOk) } returns Product(
             productId = productIdOk,
@@ -121,7 +121,7 @@ class ProductCompositeServiceApplicationTests(
         )
 
         // When & Then
-        postAndVerifyProduct(compositeProduct, HttpStatus.OK)
+        postAndVerifyProduct(compositeProduct, ACCEPTED)
     }
 
     @Test
@@ -156,7 +156,7 @@ class ProductCompositeServiceApplicationTests(
         )
 
         // When & Then
-        postAndVerifyProduct(compositeProduct, HttpStatus.OK)
+        postAndVerifyProduct(compositeProduct, ACCEPTED)
     }
 
     @Test
@@ -190,11 +190,11 @@ class ProductCompositeServiceApplicationTests(
             )
         )
 
-        postAndVerifyProduct(compositeProduct, HttpStatus.OK)
+        postAndVerifyProduct(compositeProduct, ACCEPTED)
 
         // When
-        deleteAndVerifyProduct(compositeProduct.productId, HttpStatus.OK)
-        deleteAndVerifyProduct(compositeProduct.productId, HttpStatus.OK)
+        deleteAndVerifyProduct(compositeProduct.productId, ACCEPTED)
+        deleteAndVerifyProduct(compositeProduct.productId, ACCEPTED)
     }
 
     @Test
@@ -203,7 +203,7 @@ class ProductCompositeServiceApplicationTests(
         val productId = productIdOk
 
         // When
-        getAndVerifyProduct(productId, HttpStatus.OK) {
+        getAndVerifyProduct(productId, OK) {
 
             // Then
             jsonPath("$.productId").isEqualTo(productIdOk)
@@ -218,7 +218,7 @@ class ProductCompositeServiceApplicationTests(
         val productId = productIdNotFound
 
         // When
-        getAndVerifyProduct(productId, HttpStatus.NOT_FOUND) {
+        getAndVerifyProduct(productId, NOT_FOUND) {
 
             // Then
             jsonPath("$.path").isEqualTo("/product-composite/$productIdNotFound")
@@ -232,7 +232,7 @@ class ProductCompositeServiceApplicationTests(
         val productId = productIdInvalid
 
         // When
-        getAndVerifyProduct(productId, HttpStatus.UNPROCESSABLE_ENTITY) {
+        getAndVerifyProduct(productId, UNPROCESSABLE_ENTITY) {
 
             // Then
             jsonPath("$.path").isEqualTo("/product-composite/$productIdInvalid")

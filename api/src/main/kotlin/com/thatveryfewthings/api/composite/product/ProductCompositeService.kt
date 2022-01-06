@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
@@ -54,8 +55,7 @@ interface ProductCompositeService {
     )
     @ApiResponses(
         value = [
-            // TODO: Check for 201 response code
-            ApiResponse(responseCode = "201", description = "\${api.responseCodes.created}"),
+            ApiResponse(responseCode = "202", description = "\${api.responseCodes.createAccepted}"),
             ApiResponse(responseCode = "400", description = "\${api.responseCodes.badRequest}"),
             ApiResponse(responseCode = "422", description = "\${api.responseCodes.unprocessableEntity}"),
         ]
@@ -64,6 +64,7 @@ interface ProductCompositeService {
         value = ["/product-composite"],
         consumes = [MediaType.APPLICATION_JSON_VALUE],
     )
+    @ResponseStatus(HttpStatus.ACCEPTED)
     fun createCompositeProduct(
         @RequestBody
         productAggregate: ProductAggregate,
@@ -75,8 +76,7 @@ interface ProductCompositeService {
     )
     @ApiResponses(
         value = [
-            // TODO: Check for 200 response code
-            ApiResponse(responseCode = "200", description = "\${api.responseCodes.ok}"),
+            ApiResponse(responseCode = "202", description = "\${api.responseCodes.deleteAccepted}"),
             ApiResponse(responseCode = "400", description = "\${api.responseCodes.badRequest}"),
             ApiResponse(responseCode = "422", description = "\${api.responseCodes.unprocessableEntity}"),
         ]
@@ -84,6 +84,7 @@ interface ProductCompositeService {
     @DeleteMapping(
         value = ["/product-composite/{productId}"],
     )
+    @ResponseStatus(HttpStatus.ACCEPTED)
     fun deleteCompositeProduct(
         @PathVariable
         productId: Int,

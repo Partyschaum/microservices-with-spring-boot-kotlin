@@ -85,11 +85,25 @@ class ProductCompositeServiceImpl(
     override fun deleteCompositeProduct(productId: Int): Mono<Void> {
         log.debug("deleteCompositeProduct: deletes a product aggregate for productId: $productId")
 
-        return Mono.`when`(
-            integration.deleteProduct(productId),
-            integration.deleteRecommendations(productId),
-            integration.deleteReviews(productId),
-        ).log()
+//        return Mono.`when`(
+//            integration.deleteProduct(productId),
+//            integration.deleteRecommendations(productId),
+//            integration.deleteReviews(productId),
+//        ).log()
+
+        return try {
+            Mono.zip(
+                {},
+                integration.deleteProduct(productId),
+                integration.deleteRecommendations(productId),
+                integration.deleteReviews(productId),
+            ).doOnError { log.warn("delete failed $it") }
+                .log()
+                .then()
+        } catch (ex: RuntimeException) {
+            log.warn("deleteCompositeProduct failed: $ex")
+            throw ex
+        }
     }
 
     private fun assembleProductAggregate(

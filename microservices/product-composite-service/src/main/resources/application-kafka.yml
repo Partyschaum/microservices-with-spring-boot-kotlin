@@ -1,0 +1,14 @@
+management:
+  health:
+    rabbit:
+      enabled: false
+
+spring:
+  cloud:
+    stream:
+      defaultBinder: kafka
+      kafka:
+        binder:
+          replication-factor: 1
+  kafka:
+    bootstrap-servers: kafka:9092

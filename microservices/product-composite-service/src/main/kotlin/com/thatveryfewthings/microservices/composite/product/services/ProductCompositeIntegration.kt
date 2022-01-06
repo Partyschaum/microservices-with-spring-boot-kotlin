@@ -7,26 +7,33 @@ import com.thatveryfewthings.api.core.recommendation.Recommendation
 import com.thatveryfewthings.api.core.recommendation.RecommendationService
 import com.thatveryfewthings.api.core.review.Review
 import com.thatveryfewthings.api.core.review.ReviewService
+import com.thatveryfewthings.api.event.Event
+import com.thatveryfewthings.api.event.Event.Type.CREATE
+import com.thatveryfewthings.api.event.Event.Type.DELETE
 import com.thatveryfewthings.api.exceptions.InvalidInputException
 import com.thatveryfewthings.api.exceptions.NotFoundException
 import com.thatveryfewthings.api.http.HttpErrorInfo
 import com.thatveryfewthings.microservices.composite.product.properties.ConfigurationProperties
 import org.slf4j.LoggerFactory
+import org.springframework.cloud.stream.function.StreamBridge
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY
+import org.springframework.messaging.support.MessageBuilder
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
+import reactor.core.scheduler.Scheduler
 import java.io.IOException
 
 @Component
 class ProductCompositeIntegration(
     webClientBuilder: WebClient.Builder,
-    private val mapper: ObjectMapper,
     configuration: ConfigurationProperties,
+    private val mapper: ObjectMapper,
+    private val streamBridge: StreamBridge,
+    private val publishEventScheduler: Scheduler,
 ) : ProductService, RecommendationService, ReviewService {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -52,34 +59,28 @@ class ProductCompositeIntegration(
     }
 
     override fun createProduct(product: Product): Mono<Product> {
-        val url = productServiceUrl
-        log.debug("Will call the createProduct API on URL: $url")
+        log.debug("Emit CREATE event for product with productId ${product.productId}")
 
-        return webClient
-            .post()
-            .uri(url)
-            .body(product.toMono(), Product::class.java)
-            .retrieve()
-            .bodyToMono(Product::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromCallable {
+            sendMessage(
+                bindingName = "products-out-0",
+                event = Event(CREATE, product.productId, product),
+            )
+            product
+        }.subscribeOn(publishEventScheduler)
     }
 
     override fun deleteProduct(productId: Int): Mono<Void> {
-        val url = "$productServiceUrl/$productId"
-        log.debug("Will call the deleteProduct API on URL: $url")
+        log.debug("Emit DELETE event for product with productId $productId")
 
-        return webClient
-            .delete()
-            .uri(url)
-            .retrieve()
-            .bodyToMono(Void::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromCallable {
+            sendMessage(
+                bindingName = "products-out-0",
+                event = Event(DELETE, productId, null),
+            )
+        }.subscribeOn(publishEventScheduler)
+            .then()
+
     }
 
     override fun getRecommendations(productId: Int): Flux<Recommendation> {
@@ -96,34 +97,27 @@ class ProductCompositeIntegration(
     }
 
     override fun createRecommendation(recommendation: Recommendation): Mono<Recommendation> {
-        val url = recommendationServiceUrl
-        log.debug("Will call the createRecommendation API on URL: $url")
+        log.debug("Emit CREATE event for recommendation with productId ${recommendation.productId}")
 
-        return webClient
-            .post()
-            .uri(url)
-            .body(recommendation.toMono(), Recommendation::class.java)
-            .retrieve()
-            .bodyToMono(Recommendation::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromCallable {
+            sendMessage(
+                bindingName = "recommendations-out-0",
+                event = Event(CREATE, recommendation.productId, recommendation),
+            )
+            recommendation
+        }.subscribeOn(publishEventScheduler)
     }
 
-    override fun deleteRecommendations(productId: Int): Flux<Void> {
-        val url = "$recommendationServiceUrl?productId=$productId"
-        log.debug("Will call the deleteRecommendations API on URL: $url")
+    override fun deleteRecommendations(productId: Int): Mono<Void> {
+        log.debug("Emit DELETE event for recommendation with productId $productId")
 
-        return webClient
-            .delete()
-            .uri(url)
-            .retrieve()
-            .bodyToFlux(Void::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromCallable {
+            sendMessage(
+                bindingName = "recommendations-out-0",
+                event = Event(DELETE, productId, null),
+            )
+        }.subscribeOn(publishEventScheduler)
+            .then()
     }
 
     override fun getReviews(productId: Int): Flux<Review> {
@@ -140,34 +134,27 @@ class ProductCompositeIntegration(
     }
 
     override fun createReview(review: Review): Mono<Review> {
-        val url = reviewServiceUrl
-        log.debug("Will call the createReview API on URL: $url")
+        log.debug("Emit CREATE event for review with productId ${review.productId}")
 
-        return webClient
-            .post()
-            .uri(url)
-            .body(review.toMono(), Review::class.java)
-            .retrieve()
-            .bodyToMono(Review::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromCallable {
+            sendMessage(
+                bindingName = "reviews-out-0",
+                event = Event(CREATE, review.productId, review),
+            )
+            review
+        }.subscribeOn(publishEventScheduler)
     }
 
-    override fun deleteReviews(productId: Int): Flux<Unit> {
-        val url = "$reviewServiceUrl?productId=$productId"
-        log.debug("Will call the deleteReviews API on URL: $url")
+    override fun deleteReviews(productId: Int): Mono<Void> {
+        log.debug("Emit DELETE event for review with productId $productId")
 
-        return webClient
-            .delete()
-            .uri(url)
-            .retrieve()
-            .bodyToFlux(Unit::class.java)
-            .log()
-            .onErrorMap(WebClientResponseException::class.java) {
-                handleWebClientResponseException(it)
-            }
+        return Mono.fromRunnable<Unit> {
+            sendMessage(
+                bindingName = "reviews-out-0",
+                event = Event(DELETE, productId, null),
+            )
+        }.subscribeOn(publishEventScheduler)
+            .then()
     }
 
     private fun handleWebClientResponseException(exception: WebClientResponseException): RuntimeException {
@@ -190,4 +177,12 @@ class ProductCompositeIntegration(
         } catch (ex: IOException) {
             message ?: responseBodyAsString
         }
+
+    private fun <K, T> sendMessage(bindingName: String, event: Event<K, T>) {
+        val message = MessageBuilder.withPayload(event)
+            .setHeader("partitionKey", event.key)
+            .build()
+
+        streamBridge.send(bindingName, message)
+    }
 }

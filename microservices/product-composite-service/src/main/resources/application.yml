@@ -23,6 +23,8 @@ api:
 
   responseCodes:
     ok: OK
+    createAccepted: Resource queued for creation
+    deleteAccepted: Resource queued for deletion
     created: Resource created
     badRequest: Bad Request, invalid format of the request. See response message for more information
     notFound: Not found, the specified id does not exist
@@ -74,6 +76,35 @@ server:
   error:
     include-message: always
 
+spring:
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+  cloud:
+    stream:
+      default-binder: rabbit
+      default:
+        contentType: application/json
+      bindings:
+        products-out-0:
+          destination: products
+          producer:
+            required-groups: auditGroup
+        recommendations-out-0:
+          destination: recommendations
+          producer:
+            required-groups: auditGroup
+        reviews-out-0:
+          destination: reviews
+          producer:
+            required-groups: auditGroup
+      kafka:
+        binder:
+          brokers: 127.0.0.1
+          defaultBrokerPort: 9092
+
 app:
   product-service:
     host: localhost
@@ -87,7 +118,19 @@ app:
     host: localhost
     port: 7003
 
+  publish-event-thread-pool-size: 10
+  publish-event-task-queue-size: 100
+
 logging:
   level:
     root: info
     com.thatveryfewthings: debug
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
