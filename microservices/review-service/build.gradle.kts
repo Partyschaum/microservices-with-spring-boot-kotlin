@@ -13,6 +13,13 @@ java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 val mapstructVersion = "1.4.2.Final"
 val testcontainersVersion = "1.16.2"
+val springCloudVersion = "2020.0.4"
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion")
+    }
+}
 
 dependencies {
     implementation(project(":api"))
@@ -20,6 +27,8 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.cloud:spring-cloud-starter-stream-rabbit")
+    implementation("org.springframework.cloud:spring-cloud-starter-stream-kafka")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")

@@ -2,5 +2,12 @@ server:
   port: 8080
 
 spring:
+  rabbitmq:
+    host: rabbitmq
   datasource:
     url: jdbc:mysql://mysql/review-db
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: kafka
