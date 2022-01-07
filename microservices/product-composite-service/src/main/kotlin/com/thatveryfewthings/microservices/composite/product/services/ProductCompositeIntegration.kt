@@ -15,6 +15,7 @@ import com.thatveryfewthings.api.exceptions.NotFoundException
 import com.thatveryfewthings.api.http.HttpErrorInfo
 import com.thatveryfewthings.microservices.composite.product.properties.ConfigurationProperties
 import org.slf4j.LoggerFactory
+import org.springframework.boot.actuate.health.Health
 import org.springframework.cloud.stream.function.StreamBridge
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY
@@ -26,6 +27,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import java.io.IOException
+import java.util.logging.Level
 
 @Component
 class ProductCompositeIntegration(
@@ -39,12 +41,16 @@ class ProductCompositeIntegration(
     private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = webClientBuilder.build()
 
-    private val productServiceUrl = "${configuration.productService.url}/product"
-    private val recommendationServiceUrl = "${configuration.recommendationService.url}/recommendation"
-    private val reviewServiceUrl = "${configuration.reviewService.url}/review"
+    private val productServiceHost = configuration.productService.url
+    private val recommendationServiceHost = configuration.recommendationService.url
+    private val reviewServiceHost = configuration.reviewService.url
+
+    private val productServiceEndpoint = "$productServiceHost/product"
+    private val recommendationServiceEndpoint = "$recommendationServiceHost/recommendation"
+    private val reviewServiceEndpoint = "$reviewServiceHost/review"
 
     override fun getProduct(productId: Int): Mono<Product> {
-        val url = "$productServiceUrl/$productId"
+        val url = "$productServiceEndpoint/$productId"
         log.debug("Will call the getProduct API on URL: $url")
 
         return webClient
@@ -84,7 +90,7 @@ class ProductCompositeIntegration(
     }
 
     override fun getRecommendations(productId: Int): Flux<Recommendation> {
-        val url = "$recommendationServiceUrl?productId=$productId"
+        val url = "$recommendationServiceEndpoint?productId=$productId"
         log.debug("Will call the getRecommendations API on URL: $url")
 
         return webClient
@@ -121,7 +127,7 @@ class ProductCompositeIntegration(
     }
 
     override fun getReviews(productId: Int): Flux<Review> {
-        val url = "$reviewServiceUrl?productId=$productId"
+        val url = "$reviewServiceEndpoint?productId=$productId"
         log.debug("Will call getReviews API on URL: $url")
 
         return webClient
@@ -155,6 +161,24 @@ class ProductCompositeIntegration(
             )
         }.subscribeOn(publishEventScheduler)
             .then()
+    }
+
+    fun getProductHealth() = getHealth(productServiceHost)
+    fun getRecommendationHealth() = getHealth(recommendationServiceHost)
+    fun getReviewHealth() = getHealth(reviewServiceHost)
+
+    fun getHealth(url: String): Mono<Health> {
+        val actuatorUrl = "$url/actuator/health"
+        log.debug("Will call the health API on URL: $url")
+
+        return webClient
+            .get()
+            .uri(actuatorUrl)
+            .retrieve()
+            .bodyToMono(String::class.java)
+            .map { Health.Builder().up().build() }
+            .onErrorResume { Mono.just(Health.Builder().down(it).build()) }
+            .log(log.name, Level.FINE)
     }
 
     private fun handleWebClientResponseException(exception: WebClientResponseException): RuntimeException {
