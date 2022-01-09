@@ -5,7 +5,18 @@ services:
     build: microservices/product-service
     mem_limit: 512m
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_0
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  product-p1:
+    build: microservices/product-service
+    mem_limit: 512m
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_1
     depends_on:
       mongodb:
         condition: service_healthy
@@ -16,7 +27,18 @@ services:
     build: microservices/recommendation-service
     mem_limit: 512m
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_0
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  recommendation-p1:
+    build: microservices/recommendation-service
+    mem_limit: 512m
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_1
     depends_on:
       mongodb:
         condition: service_healthy
@@ -27,7 +49,18 @@ services:
     build: microservices/review-service
     mem_limit: 512m
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_0
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  review-p1:
+    build: microservices/review-service
+    mem_limit: 512m
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned,streaming_instance_1
     depends_on:
       mysql:
         condition: service_healthy
@@ -40,7 +73,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=docker,streaming_partitioned
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -84,3 +117,21 @@ services:
       interval: 5s
       timeout: 2s
       retries: 60
+
+  eureka:
+    build: spring-cloud/eureka-server
+    mem_limit: 512m
+    ports:
+      - "8761:8761"
+
+  gateway:
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_SSL_KEY_STORE=file:/keystore/edge-test.p12
+      - SERVER_SSL_KEY_STORE_PASSWORD=testtest
+    volumes:
+      - $PWD/keystore:/keystore
+    build: spring-cloud/gateway
+    mem_limit: 512m
+    ports:
+      - "8443:8443"
