@@ -11,6 +11,7 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Mono.error
+import java.util.logging.Level
 
 @RestController
 class ProductServiceImpl(
@@ -28,7 +29,7 @@ class ProductServiceImpl(
 
         return repository.findByProductId(productId)
             .switchIfEmpty(error(NotFoundException("No product found for productId: $productId")))
-            .log()
+            .log(log.name, Level.FINE)
             .map(mapper::entityToApi)
             .map { it.addServiceAddress() }
     }
@@ -41,7 +42,7 @@ class ProductServiceImpl(
         val productEntity = mapper.apiToEntity(product)
 
         return repository.save(productEntity)
-            .log()
+            .log(log.name, Level.FINE)
             .onErrorMap(DuplicateKeyException::class.java) {
                 InvalidInputException("Duplicate key, Product id: ${product.productId}")
             }
@@ -55,7 +56,7 @@ class ProductServiceImpl(
 
         log.debug("deleteProduct: tries to delete entity with productId: $productId")
         return repository.findByProductId(productId)
-            .log()
+            .log(log.name, Level.FINE)
             .map { repository.delete(it) }
             .flatMap { it }
     }

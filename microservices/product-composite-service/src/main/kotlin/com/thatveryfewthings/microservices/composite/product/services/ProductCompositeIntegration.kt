@@ -58,10 +58,10 @@ class ProductCompositeIntegration(
             .uri(url)
             .retrieve()
             .bodyToMono(Product::class.java)
-            .log()
             .onErrorMap(WebClientResponseException::class.java) {
                 handleWebClientResponseException(it)
             }
+            .log(log.name, Level.FINE)
     }
 
     override fun createProduct(product: Product): Mono<Product> {
@@ -74,6 +74,7 @@ class ProductCompositeIntegration(
             )
             product
         }.subscribeOn(publishEventScheduler)
+            .log(log.name, Level.FINE)
     }
 
     override fun deleteProduct(productId: Int): Mono<Void> {
@@ -86,7 +87,7 @@ class ProductCompositeIntegration(
             )
         }.subscribeOn(publishEventScheduler)
             .then()
-
+            .log(log.name, Level.FINE)
     }
 
     override fun getRecommendations(productId: Int): Flux<Recommendation> {
@@ -98,8 +99,8 @@ class ProductCompositeIntegration(
             .uri(url)
             .retrieve()
             .bodyToFlux(Recommendation::class.java)
-            .log()
             .onErrorResume { Flux.empty() }
+            .log(log.name, Level.FINE)
     }
 
     override fun createRecommendation(recommendation: Recommendation): Mono<Recommendation> {
@@ -112,6 +113,7 @@ class ProductCompositeIntegration(
             )
             recommendation
         }.subscribeOn(publishEventScheduler)
+            .log(log.name, Level.FINE)
     }
 
     override fun deleteRecommendations(productId: Int): Mono<Void> {
@@ -124,6 +126,7 @@ class ProductCompositeIntegration(
             )
         }.subscribeOn(publishEventScheduler)
             .then()
+            .log(log.name, Level.FINE)
     }
 
     override fun getReviews(productId: Int): Flux<Review> {
@@ -135,8 +138,8 @@ class ProductCompositeIntegration(
             .uri(url)
             .retrieve()
             .bodyToFlux(Review::class.java)
-            .log()
             .onErrorResume { Flux.empty() }
+            .log(log.name, Level.FINE)
     }
 
     override fun createReview(review: Review): Mono<Review> {
@@ -149,6 +152,7 @@ class ProductCompositeIntegration(
             )
             review
         }.subscribeOn(publishEventScheduler)
+            .log(log.name, Level.FINE)
     }
 
     override fun deleteReviews(productId: Int): Mono<Void> {
@@ -161,6 +165,7 @@ class ProductCompositeIntegration(
             )
         }.subscribeOn(publishEventScheduler)
             .then()
+            .log(log.name, Level.FINE)
     }
 
     fun getProductHealth() = getHealth(productServiceHost)

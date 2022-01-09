@@ -8,6 +8,7 @@ import com.thatveryfewthings.api.http.ServiceUtil
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import java.util.logging.Level
 
 @RestController
 class ProductCompositeServiceImpl(
@@ -36,7 +37,7 @@ class ProductCompositeServiceImpl(
                 integration.getReviews(productId).collectList(),
             )
             .doOnError { log.warn("getCompositeProduct failed: $it") }
-            .log()
+            .log(log.name, Level.FINE)
     }
 
     override fun createCompositeProduct(productAggregate: ProductAggregate): Mono<Void> {
@@ -79,17 +80,11 @@ class ProductCompositeServiceImpl(
             ),
             *recommendations,
             *reviews,
-        ).log()
+        ).log(log.name, Level.FINE)
     }
 
     override fun deleteCompositeProduct(productId: Int): Mono<Void> {
         log.debug("deleteCompositeProduct: deletes a product aggregate for productId: $productId")
-
-//        return Mono.`when`(
-//            integration.deleteProduct(productId),
-//            integration.deleteRecommendations(productId),
-//            integration.deleteReviews(productId),
-//        ).log()
 
         return try {
             Mono.zip(
@@ -98,7 +93,7 @@ class ProductCompositeServiceImpl(
                 integration.deleteRecommendations(productId),
                 integration.deleteReviews(productId),
             ).doOnError { log.warn("delete failed $it") }
-                .log()
+                .log(log.name, Level.FINE)
                 .then()
         } catch (ex: RuntimeException) {
             log.warn("deleteCompositeProduct failed: $ex")
