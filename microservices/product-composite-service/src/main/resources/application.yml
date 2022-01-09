@@ -124,7 +124,7 @@ app:
 logging:
   level:
     root: info
-    com.thatveryfewthings: debug
+    com.thatveryfewthings: info
 
 management:
   endpoint:

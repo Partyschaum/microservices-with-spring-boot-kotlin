@@ -48,8 +48,7 @@ spring:
 logging:
   level:
     root: info
-    com.thatveryfewthings.microservices: debug
-    org.springframework.data.mongodb.core.ReactiveMongoTemplate: debug
+    com.thatveryfewthings: info
 
 management:
   endpoint:
