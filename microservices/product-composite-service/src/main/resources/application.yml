@@ -1,20 +1,20 @@
 springdoc:
   swagger-ui.path: /openapi/swagger-ui.html
   api-docs.path: /openapi/v3/api-docs
-  packagesToScan: com.thatveryfewthings.microservices.composite.product
-  pathsToMatch: /**
+  packages-to-scan: com.thatveryfewthings.microservices.composite.product
+  paths-to-match: /**
 
 api:
   common:
     version: 1.0.0
     title: Sample API
     description: Description of the API...
-    termsOfService: MY TERMS OF SERVICE
+    terms-of-service: MY TERMS OF SERVICE
     license: MY LICENSE
-    licenseUrl: MY LICENSE URL
+    license-url: MY LICENSE URL
 
-    externalDocDesc: MY WIKI PAGE
-    externalDocUrl: MY WIKI URL
+    external-doc-desc: MY WIKI PAGE
+    external-doc-url: MY WIKI URL
 
     contact:
       name: NAME OF CONTACT
@@ -86,7 +86,7 @@ spring:
     stream:
       default-binder: rabbit
       default:
-        contentType: application/json
+        content-type: application/json
       bindings:
         products-out-0:
           destination: products
@@ -103,7 +103,7 @@ spring:
       kafka:
         binder:
           brokers: 127.0.0.1
-          defaultBrokerPort: 9092
+          default-broker-port: 9092
 
 app:
   product-service:

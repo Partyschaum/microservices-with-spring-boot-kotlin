@@ -5,4 +5,4 @@ spring:
         messageProcessor-in-0:
           consumer:
             partitioned: true
-            instanceCount: 2
+            instance-count: 2

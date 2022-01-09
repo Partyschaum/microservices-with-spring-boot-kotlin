@@ -6,7 +6,7 @@ management:
 spring:
   cloud:
     stream:
-      defaultBinder: kafka
+      default-binder: kafka
       kafka:
         binder:
           replication-factor: 1

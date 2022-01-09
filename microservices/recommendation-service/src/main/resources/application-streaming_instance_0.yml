@@ -4,4 +4,4 @@ spring:
       bindings:
         messageProcessor-in-0:
           consumer:
-            instanceIndex: 0
+            instance-index: 0
