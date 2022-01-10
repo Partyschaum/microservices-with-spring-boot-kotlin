@@ -5,6 +5,7 @@ import com.thatveryfewthings.api.event.Event
 import com.thatveryfewthings.api.event.Event.Type.CREATE
 import com.thatveryfewthings.api.event.Event.Type.DELETE
 import com.thatveryfewthings.api.exceptions.InvalidInputException
+import com.thatveryfewthings.microservices.core.product.config.MessageProcessor
 import com.thatveryfewthings.microservices.core.product.persistence.ProductRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -20,7 +21,10 @@ import reactor.test.StepVerifier
 
 @SpringBootTest(
     webEnvironment = RANDOM_PORT,
-    properties = ["spring.data.mongodb.port: 0"],
+    properties = [
+        "spring.data.mongodb.port: 0",
+        "eureka.client.enabled = false",
+    ],
 )
 class ProductServiceApplicationTests(
     @Autowired

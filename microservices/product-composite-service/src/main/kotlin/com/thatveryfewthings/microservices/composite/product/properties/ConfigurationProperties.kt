@@ -13,10 +13,9 @@ data class ConfigurationProperties(
 
     data class Service(
         val host: String,
-        val port: Int,
         val https: Boolean = false,
     ) {
         val url: String
-            get() = "${if (https) "https" else "http"}://$host:$port"
+            get() = "${if (https) "https" else "http"}://$host"
     }
 }

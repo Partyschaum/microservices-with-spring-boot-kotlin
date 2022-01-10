@@ -24,7 +24,10 @@ import org.springframework.messaging.Message
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.kotlin.core.publisher.toMono
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = ["eureka.client.enabled = false"],
+)
 @Import(TestChannelBinderConfiguration::class)
 class MessagingTests(
     @Autowired

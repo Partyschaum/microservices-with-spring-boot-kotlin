@@ -21,7 +21,10 @@ import reactor.test.StepVerifier
 
 @SpringBootTest(
     webEnvironment = RANDOM_PORT,
-    properties = ["spring.data.mongodb.port: 0"],
+    properties = [
+        "spring.data.mongodb.port: 0",
+        "eureka.client.enabled = false",
+    ],
 )
 class RecommendationServiceApplicationTests(
     @Autowired

@@ -25,7 +25,10 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import reactor.kotlin.core.publisher.toMono
 
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = RANDOM_PORT,
+    properties = ["eureka.client.enabled = false"],
+)
 class ProductCompositeServiceApplicationTests(
     @Autowired
     private val client: WebTestClient,

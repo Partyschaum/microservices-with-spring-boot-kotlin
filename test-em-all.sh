@@ -15,7 +15,8 @@ function assertCurl() {
 
   local expectedHttpCode=$1
   local curlCmd="$2 -w \"%{http_code}\""
-  local result=$(eval "$curlCmd")
+  local result
+  result=$(eval "$curlCmd")
   local httpCode="${result:(-3)}"
 
   RESPONSE='' && ((${#result} > 3)) && RESPONSE="${result%???}"
@@ -48,7 +49,7 @@ function assertEqual() {
 }
 
 function testUrl() {
-  url=$@
+  url=$*
   if $url -ks -f -o /dev/null; then
     return 0
   else
@@ -57,7 +58,7 @@ function testUrl() {
 }
 
 function waitForService() {
-  url=$@
+  url=$*
   echo -n "Wait for: $url... "
   n=0
   until testUrl "$url"; do
@@ -172,15 +173,19 @@ fi
 
 waitForService curl http://$HOST:$PORT/actuator/health
 
+# Verify access to Eureka and that all four microservices are registered in Eureka
+assertCurl 200 "curl -H accept:application/json $HOST:8761/eureka/apps -s"
+assertEqual 4 "$(echo "$RESPONSE" | jq ".applications.application | length")"
+
 setupTestdata
 
 waitForMessageProcessing
 
 # Verify that a normal request works, expect three recommendations and three reviews
 assertCurl 200 "curl http://$HOST:$PORT/product-composite/$PROD_ID_REVS_RECS -s"
-assertEqual $PROD_ID_REVS_RECS $(echo "$RESPONSE" | jq .productId)
-assertEqual 3 $(echo "$RESPONSE" | jq ".recommendations | length")
-assertEqual 3 $(echo "$RESPONSE" | jq ".reviews | length")
+assertEqual $PROD_ID_REVS_RECS "$(echo "$RESPONSE" | jq .productId)"
+assertEqual 3 "$(echo "$RESPONSE" | jq ".recommendations | length")"
+assertEqual 3 "$(echo "$RESPONSE" | jq ".reviews | length")"
 
 # Verify that a 404 (Not Found) error is returned for a non-existing productId ($PROD_ID_NOT_FOUND)
 assertCurl 404 "curl http://$HOST:$PORT/product-composite/$PROD_ID_NOT_FOUND -s"
@@ -188,15 +193,15 @@ assertEqual "No product found for productId: $PROD_ID_NOT_FOUND" "$(echo "$RESPO
 
 # Verify that no recommendations are returned for productId $PROD_ID_NO_RECS
 assertCurl 200 "curl http://$HOST:$PORT/product-composite/$PROD_ID_NO_RECS -s"
-assertEqual $PROD_ID_NO_RECS $(echo "$RESPONSE" | jq .productId)
-assertEqual 0 $(echo "$RESPONSE" | jq ".recommendations | length")
-assertEqual 3 $(echo "$RESPONSE" | jq ".reviews | length")
+assertEqual $PROD_ID_NO_RECS "$(echo "$RESPONSE" | jq .productId)"
+assertEqual 0 "$(echo "$RESPONSE" | jq ".recommendations | length")"
+assertEqual 3 "$(echo "$RESPONSE" | jq ".reviews | length")"
 
 # Verify that no reviews are returned for productId $PROD_ID_NO_REVS
 assertCurl 200 "curl http://$HOST:$PORT/product-composite/$PROD_ID_NO_REVS -s"
-assertEqual $PROD_ID_NO_REVS $(echo "$RESPONSE" | jq .productId)
-assertEqual 3 $(echo "$RESPONSE" | jq ".recommendations | length")
-assertEqual 0 $(echo "$RESPONSE" | jq ".reviews | length")
+assertEqual $PROD_ID_NO_REVS "$(echo "$RESPONSE" | jq .productId)"
+assertEqual 3 "$(echo "$RESPONSE" | jq ".recommendations | length")"
+assertEqual 0 "$(echo "$RESPONSE" | jq ".reviews | length")"
 
 # Verify that a 422 (Unprocessable Entity) error is returned for a productId that is out of range (-1)
 assertCurl 422 "curl http://$HOST:$PORT/product-composite/-1 -s"
@@ -206,10 +211,10 @@ assertEqual "\"Invalid productId: -1\"" "$(echo "$RESPONSE" | jq .message)"
 assertCurl 400 "curl http://$HOST:$PORT/product-composite/invalidProductId -s"
 assertEqual "\"Type mismatch.\"" "$(echo "$RESPONSE" | jq .message)"
 
-if [[ $@ == *"stop"* ]]; then
+if [[ $* == *"stop"* ]]; then
   echo "We are done, stopping the test environment..."
   echo "$ docker-compose down"
   docker-compose down
 fi
 
-echo "End, all tests OK:" $(date)
+echo "End, all tests OK:" "$(date)"

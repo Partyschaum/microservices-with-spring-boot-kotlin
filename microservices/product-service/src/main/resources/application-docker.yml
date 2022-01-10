@@ -12,3 +12,6 @@ spring:
       kafka:
         binder:
           brokers: kafka
+
+app:
+  eureka-server: eureka
