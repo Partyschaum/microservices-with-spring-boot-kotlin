@@ -3,6 +3,8 @@ springdoc:
   api-docs.path: /openapi/v3/api-docs
   packages-to-scan: com.thatveryfewthings.microservices.composite.product
   paths-to-match: /**
+  cache:
+    disabled: true
 
 api:
   common:
@@ -72,6 +74,7 @@ api:
         This means that a delete request of a non existing product will return **200 Ok**.
 
 server:
+  forward-headers-strategy: framework
   port: 7000
   error:
     include-message: always

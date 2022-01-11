@@ -15,7 +15,6 @@ import com.thatveryfewthings.api.exceptions.NotFoundException
 import com.thatveryfewthings.api.http.HttpErrorInfo
 import com.thatveryfewthings.microservices.composite.product.properties.ConfigurationProperties
 import org.slf4j.LoggerFactory
-import org.springframework.boot.actuate.health.Health
 import org.springframework.cloud.stream.function.StreamBridge
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY
@@ -165,24 +164,6 @@ class ProductCompositeIntegration(
             )
         }.subscribeOn(publishEventScheduler)
             .then()
-            .log(log.name, Level.FINE)
-    }
-
-    fun getProductHealth() = getHealth(productServiceHost)
-    fun getRecommendationHealth() = getHealth(recommendationServiceHost)
-    fun getReviewHealth() = getHealth(reviewServiceHost)
-
-    fun getHealth(url: String): Mono<Health> {
-        val actuatorUrl = "$url/actuator/health"
-        log.debug("Will call the health API on URL: $url")
-
-        return webClient
-            .get()
-            .uri(actuatorUrl)
-            .retrieve()
-            .bodyToMono(String::class.java)
-            .map { Health.Builder().up().build() }
-            .onErrorResume { Mono.just(Health.Builder().down(it).build()) }
             .log(log.name, Level.FINE)
     }
 
