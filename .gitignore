@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Do not check in the local development certificates
+localhost.pem
+localhost-key.pem
+localhost.p12
