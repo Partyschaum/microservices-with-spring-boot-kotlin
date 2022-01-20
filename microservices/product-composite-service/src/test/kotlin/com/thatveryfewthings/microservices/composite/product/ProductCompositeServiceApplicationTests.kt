@@ -27,7 +27,12 @@ import reactor.kotlin.core.publisher.toMono
 
 @SpringBootTest(
     webEnvironment = RANDOM_PORT,
-    properties = ["eureka.client.enabled = false"],
+    classes = [TestSecurityConfig::class],
+    properties = [
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=",
+        "spring.main.allow-bean-definition-overriding=true",
+        "eureka.client.enabled = false",
+    ],
 )
 class ProductCompositeServiceApplicationTests(
     @Autowired

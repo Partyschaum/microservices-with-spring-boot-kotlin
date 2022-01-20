@@ -1,6 +1,16 @@
 springdoc:
-  swagger-ui.path: /openapi/swagger-ui.html
-  api-docs.path: /openapi/v3/api-docs
+  swagger-ui:
+    path: /openapi/swagger-ui.html
+    oauth2-redirect-url: https://localhost:8443/webjars/swagger-ui/oauth2-redirect.html
+    oauth:
+      client-id: writer
+      client-secret: writerSecret
+      use-basic-authentication-with-access-code-grant: true
+  o-auth-flow:
+    authorization-url: https://localhost:8443/oauth2/authorize
+    token-url: https://localhost:8443/oauth2/token
+  api-docs:
+    path: /openapi/v3/api-docs
   packages-to-scan: com.thatveryfewthings.microservices.composite.product
   paths-to-match: /**
   cache:
@@ -109,6 +119,11 @@ spring:
         binder:
           brokers: 127.0.0.1
     default-broker-port: 9092
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://${app.auth-server.host}:${app.auth-server.port}
 
 app:
   product-service:
@@ -126,6 +141,10 @@ app:
   eureka-server: localhost
   eureka-username: username
   eureka-password: password
+
+  auth-server:
+    host: localhost
+    port: 9999
 
 eureka:
   client:
