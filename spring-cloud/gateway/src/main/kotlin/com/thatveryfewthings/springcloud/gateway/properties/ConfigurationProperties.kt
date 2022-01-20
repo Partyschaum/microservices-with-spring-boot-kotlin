@@ -10,13 +10,15 @@ data class ConfigurationProperties(
     val recommendationService: Service,
     val reviewService: Service,
     val productCompositeService: Service,
+    val authServer: Service,
 ) {
 
     data class Service(
         val host: String,
         val https: Boolean = false,
+        val port: Int = 8080,
     ) {
         val url: String
-            get() = "${if (https) "https" else "http"}://$host"
+            get() = "${if (https) "https" else "http"}://$host:$port"
     }
 }
