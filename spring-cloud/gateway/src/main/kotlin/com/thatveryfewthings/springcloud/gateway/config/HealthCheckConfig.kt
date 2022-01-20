@@ -25,6 +25,7 @@ class HealthCheckConfig(
     private val recommendationServiceHost = configuration.recommendationService.url
     private val reviewServiceHost = configuration.reviewService.url
     private val productCompositeHost = configuration.productCompositeService.url
+    private val authServerHost = configuration.authServer.url
 
     @Bean
     fun healthcheckMicroservices(): ReactiveHealthContributor {
@@ -33,6 +34,7 @@ class HealthCheckConfig(
             "recommendation" to ReactiveHealthIndicator { getHealth(recommendationServiceHost) },
             "review" to ReactiveHealthIndicator { getHealth(reviewServiceHost) },
             "product-composite" to ReactiveHealthIndicator { getHealth(productCompositeHost) },
+            "auth-server" to ReactiveHealthIndicator { getHealth(authServerHost) },
         )
 
         return CompositeReactiveHealthContributor.fromMap(registry)
