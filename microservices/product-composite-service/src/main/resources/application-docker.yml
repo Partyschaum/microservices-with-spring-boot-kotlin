@@ -12,3 +12,5 @@ spring:
 
 app:
   eureka-server: eureka
+  auth-server:
+    host: auth-server
