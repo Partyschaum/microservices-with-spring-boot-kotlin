@@ -1,7 +1,7 @@
 springdoc:
   swagger-ui:
     path: /openapi/swagger-ui.html
-    oauth2-redirect-url: https://localhost:8443/webjars/swagger-ui/oauth2-redirect.html
+    oauth2-redirect-url: /swagger-ui/oauth2-redirect.html
     oauth:
       client-id: writer
       client-secret: writerSecret
