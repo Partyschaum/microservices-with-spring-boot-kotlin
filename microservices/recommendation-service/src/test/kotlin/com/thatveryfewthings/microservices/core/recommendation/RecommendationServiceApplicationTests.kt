@@ -24,6 +24,7 @@ import reactor.test.StepVerifier
     properties = [
         "spring.data.mongodb.port: 0",
         "eureka.client.enabled = false",
+        "spring.cloud.stream.default.consumer.autoStartup: false",
     ],
 )
 class RecommendationServiceApplicationTests(
