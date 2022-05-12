@@ -24,6 +24,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
     properties = [
         "spring.datasource.url=jdbc:h2:mem:review-db",
         "eureka.client.enabled = false",
+        "spring.cloud.stream.default.consumer.autoStartup: false",
     ],
 )
 class ReviewServiceApplicationTests(

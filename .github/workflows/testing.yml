@@ -1,0 +1,22 @@
+name: Run all the tests
+on: [ push ]
+jobs:
+  testing:
+    name: Run unit and integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3.3.0
+        with:
+          distribution: 'adopt'
+          java-version: '16'
+          cache: 'gradle'
+
+      - name: Run the unit tests
+        run: ./gradlew test --no-daemon
+
+      - name: Run the integration tests
+        run: ./test-em-all.sh start stop
